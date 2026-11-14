@@ -1,0 +1,2251 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#03050F">
+<title>FisIA</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%2303050F'/%3E%3Cg fill='none' stroke='%233DE8FF' stroke-width='2'%3E%3Cellipse cx='20' cy='20' rx='15' ry='5.5' transform='rotate(-32 20 20)'/%3E%3Cellipse cx='20' cy='20' rx='15' ry='5.5' transform='rotate(32 20 20)'/%3E%3C/g%3E%3Ccircle cx='20' cy='20' r='3.4' fill='%23FFB347'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+/* Diseño: estación de laboratorio sobre papel milimetrado. Entrada a la izquierda, resultados con pestañas a la derecha. */
+:root{
+  --bg:#03050F; --bg-2:#070B1C; --grid:rgba(120,150,255,.07); --grid-strong:rgba(120,150,255,.12);
+  --panel:rgba(10,16,38,.78); --panel-2:rgba(26,38,82,.50); --line:rgba(130,160,255,.22);
+  --fg:#E8EEFF; --muted:#8F9DC8;
+  --accent:#3DE8FF; --accent-ink:#021018; --accent-soft:rgba(61,232,255,.12);
+  --violet:#8B5CFF; --signal:#FFB347; --signal-soft:rgba(255,179,71,.10);
+  --ok:#4ADE9A; --bad:#FF7A70; --bad-soft:rgba(255,90,80,.12);
+  --code-bg:#050813; --code-fg:#E6ECFA; --code-line:#1D2848;
+  --code-kw:#7CC4FF; --code-str:#FFB27A; --code-num:#8EE6B0; --code-com:#8190B4; --sel:#46D5FF55;
+  --font-display:'Chakra Petch','Segoe UI',system-ui,sans-serif;
+  --font-logo:'Orbitron','Chakra Petch','Segoe UI',system-ui,sans-serif;
+  --font-body:'IBM Plex Sans','Segoe UI',system-ui,-apple-system,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{position:relative;isolation:isolate;min-height:100%;background:var(--bg);color:var(--fg);font:15px/1.55 var(--font-body);padding-inline:16px;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px),linear-gradient(var(--grid-strong) 1px,transparent 1px),linear-gradient(90deg,var(--grid-strong) 1px,transparent 1px);
+  background-size:12px 12px,12px 12px,60px 60px,60px 60px;
+  -webkit-mask-image:linear-gradient(to bottom,#000,rgba(0,0,0,.2));mask-image:linear-gradient(to bottom,#000,rgba(0,0,0,.2))}
+@media (min-width:700px){body{padding-inline:24px}}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+h1,h2,h3,p{margin:0}
+
+.app{max-width:1280px;margin-inline:auto;padding-block:14px 36px}
+
+/* Cabecera */
+.top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px 24px;padding-block:6px 18px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{flex:none}
+.mark g{transform-box:view-box;transform-origin:50% 50%}
+.mark.busy g{animation:spin 2.4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.brand h1{font:700 27px/1 var(--font-display);letter-spacing:.02em}
+.brand h1 span{color:var(--accent)}
+.brand p{margin-top:5px;font:500 11px/1.2 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.status{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font:500 12px var(--font-mono);color:var(--muted)}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.status.ok .dot{background:var(--ok)}
+.status.off .dot{background:var(--bad)}
+
+/* Estructura */
+.work{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:960px){.work{grid-template-columns:minmax(0,1fr)}}
+@media (min-width:961px) and (min-height:860px){.entrada{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}}
+.panel{position:relative;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px}
+.panel::before,.panel::after{content:"";position:absolute;width:12px;height:12px;border:2px solid var(--accent);pointer-events:none}
+.panel::before{top:-1px;left:-1px;border-right:0;border-bottom:0;border-top-left-radius:6px}
+.panel::after{bottom:-1px;right:-1px;border-left:0;border-top:0;border-bottom-right-radius:6px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.panel-head h2{font:600 13px var(--font-display);letter-spacing:.14em;text-transform:uppercase}
+.tag{font:500 10.5px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+
+/* Controles */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;border-radius:4px;border:1px solid var(--line);background:var(--panel-2);color:var(--fg);font:600 13px var(--font-display);letter-spacing:.04em;cursor:pointer;text-decoration:none;-webkit-tap-highlight-color:transparent}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.big{width:100%;padding:13px 16px;font-size:14px}
+.btn[disabled]{opacity:.5;cursor:not-allowed;filter:none}
+.btn.small{padding:6px 10px;font-size:12px}
+label.btn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.lbl{display:block;margin-bottom:6px;font:500 11px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+textarea,input[type=text],select{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:10px 12px;font:15px/1.5 var(--font-body)}
+textarea:focus,input[type=text]:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:130px}
+@media (max-width:640px){textarea#enunciado,input[type=text],select{font-size:16px}}
+.hint{margin-top:8px;font-size:12.5px;color:var(--muted)}
+.stack{display:grid;gap:14px}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:420px){.row-2{grid-template-columns:1fr}}
+
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px;margin-bottom:16px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px}
+.seg button{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 6px;border:0;border-radius:4px;background:transparent;color:var(--muted);font:600 13px var(--font-display);letter-spacing:.03em;cursor:pointer}
+.seg button[aria-selected=true]{background:var(--accent);color:var(--accent-ink)}
+.seg svg,.tabs svg{flex:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{padding:5px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel-2);font:500 12px var(--font-body);color:var(--fg);cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+
+.drop{display:grid;justify-items:center;gap:8px;text-align:center;padding:20px 14px;border:1.5px dashed var(--line);border-radius:6px;background:var(--panel-2);color:var(--muted)}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop strong{color:var(--fg);font-weight:600}
+.drop-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.thumb{display:grid;gap:8px;margin-top:12px}
+.thumb img{max-width:100%;max-height:200px;object-fit:contain;border:1px solid var(--line);border-radius:4px;background:var(--bg)}
+.thumb .meta{display:flex;justify-content:space-between;align-items:center;gap:8px;font:12px var(--font-mono);color:var(--muted);min-width:0}
+.thumb .meta span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+
+.fases{list-style:none;margin:16px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.fases li{padding-top:6px;border-top:3px solid var(--line);font:500 10px/1.25 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.fases li.done{border-color:var(--ok);color:var(--fg)}
+.fases li.active{border-color:var(--accent);color:var(--accent)}
+.consola{margin:10px 0 0;padding:10px 12px;height:150px;overflow:hidden;background:var(--code-bg);color:var(--code-fg);border:1px solid var(--code-line);border-radius:4px;font:11.5px/1.5 var(--font-mono);white-space:pre}
+.msg{margin-top:12px;padding:10px 12px;border-radius:4px;border:1px solid var(--bad);background:var(--bad-soft);color:var(--fg);font-size:13.5px}
+.note{margin-top:10px;font-size:12.5px;color:var(--muted)}
+
+/* Laboratorio */
+.lab-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:14px}
+.lab-title{min-width:0;flex:1 1 280px}
+.lab-title h2{font:700 24px/1.2 var(--font-display);text-wrap:balance;overflow-wrap:anywhere}
+.lab-title p{margin-top:4px;color:var(--muted);font-size:13.5px}
+.badge{display:inline-block;margin-bottom:8px;padding:2px 9px;border:1px solid var(--signal);border-radius:999px;font:500 10.5px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--signal)}
+.cover{margin-top:14px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2)}
+.cover summary{padding:8px 12px;cursor:pointer;font:500 12px var(--font-mono);letter-spacing:.06em;color:var(--muted)}
+.cover-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;padding:4px 12px 14px}
+
+.tabs{display:flex;gap:2px;margin-top:16px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:thin}
+.tabs button{flex:none;display:flex;align-items:center;gap:7px;padding:10px 14px;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;color:var(--muted);font:600 13px var(--font-display);letter-spacing:.03em;white-space:nowrap;cursor:pointer}
+.tabs button[aria-selected=true]{color:var(--fg);border-bottom-color:var(--accent)}
+.tabpanel{padding-top:18px;min-width:0}
+
+.enun{max-width:72ch;margin-bottom:20px;font-size:16px;line-height:1.65}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:20px}
+.blk{min-width:0;margin-bottom:20px}
+.blk h3,.resultado h3{margin-bottom:8px;font:500 11px var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.tbl{overflow-x:auto}
+table.datos{width:100%;border-collapse:collapse;font-size:13.5px}
+.datos td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.datos .sym{font-family:var(--font-mono);color:var(--accent);white-space:nowrap}
+.datos .val{font-family:var(--font-mono);white-space:nowrap}
+.leyes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:10px}
+.ley{display:grid;gap:6px;padding:12px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;min-width:0}
+.ley-n{font:600 12.5px var(--font-display);letter-spacing:.04em}
+.ley code{font:500 14.5px/1.5 var(--font-mono);color:var(--accent);overflow-wrap:anywhere}
+.resultado{padding:14px 16px;background:var(--signal-soft);border:1px solid var(--signal);border-radius:4px}
+.resultado h3{color:var(--signal)}
+.resultado p{font:500 15px/1.6 var(--font-mono);overflow-wrap:anywhere}
+
+.pasos{list-style:none;margin:0;padding:0}
+.paso{position:relative;display:grid;grid-template-columns:34px minmax(0,1fr);gap:14px;padding-bottom:20px}
+.paso:not(:last-child)::before{content:"";position:absolute;left:16px;top:36px;bottom:2px;width:1px;background:var(--line)}
+.paso .n{display:grid;place-items:center;width:32px;height:32px;border:1.5px solid var(--accent);border-radius:50%;background:var(--panel);font:600 13px var(--font-mono);color:var(--accent)}
+.paso h3{margin:4px 0 4px;font:600 16px/1.3 var(--font-display)}
+.paso p{max-width:70ch;margin-bottom:8px}
+.calc{padding:10px 12px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;font:13px/1.7 var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.verif{margin-top:6px;padding:12px 14px;border:1px solid var(--ok);border-radius:4px}
+.verif h3{margin-bottom:6px;font:500 11px var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ok)}
+
+.sim{border:1px solid var(--line);border-radius:6px;background:var(--panel-2);overflow:hidden}
+.sim-title{padding:10px 14px;border-bottom:1px solid var(--line);font:600 13px var(--font-display);letter-spacing:.04em}
+.sim-canvas{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;min-height:240px;max-height:460px}
+.sim-canvas canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.sim-ctrl{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 14px;border-top:1px solid var(--line)}
+.sim-ctrl input[type=range]{flex:1 1 160px;min-width:0;accent-color:var(--accent)}
+.sim-ctrl select{width:auto;padding:6px 8px;font-size:13px}
+.readout{padding:0 14px 12px;font:12.5px/1.6 var(--font-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 14px 0;font:12px var(--font-mono);color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+
+.code-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.code-bar .grp{display:flex;flex-wrap:wrap;gap:8px}
+.editor{position:relative;height:clamp(300px,52vh,520px);background:var(--code-bg);border:1px solid var(--code-line);border-radius:6px;overflow:hidden}
+.ed{position:absolute;inset:0;margin:0;padding:14px 14px 40px;border:0;border-radius:0;font:13px/20px var(--font-mono);tab-size:4;white-space:pre;overflow:auto;letter-spacing:0;font-variant-ligatures:none}
+.editor pre{color:var(--code-fg);overflow:hidden;pointer-events:none}
+.editor textarea{width:auto;min-height:0;background:transparent;color:transparent;-webkit-text-fill-color:transparent;caret-color:var(--code-fg);resize:none;outline:none}
+.editor textarea::selection{background:var(--sel)}
+.editor .c{color:var(--code-com);font-style:italic}
+.editor .s{color:var(--code-str)}
+.editor .k{color:var(--code-kw)}
+.editor .n{color:var(--code-num)}
+.run{margin-top:12px;padding:12px 14px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;font:12.5px/1.7 var(--font-mono);overflow-x:auto;white-space:pre}
+.run b{color:var(--accent);font-weight:500}
+.empty{padding:22px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);text-align:center}
+
+.chat-log{display:grid;gap:10px;max-height:420px;overflow-y:auto;padding:2px}
+.bubble{max-width:min(100%,640px);padding:10px 14px;border-radius:6px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14.5px}
+.bubble.user{justify-self:end;background:var(--accent);color:var(--accent-ink)}
+.bubble.ai{justify-self:start;background:var(--panel-2);border:1px solid var(--line)}
+.chat-form{display:flex;gap:8px;margin-top:12px}
+.chat-form input{flex:1;min-width:0}
+
+.foot{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);max-width:80ch}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;max-width:min(92vw,520px);padding:10px 16px;border-radius:4px;background:var(--fg);color:var(--bg);font-size:13.5px}
+@media (prefers-reduced-motion: reduce){.mark.busy g{animation:none}}
+.seg button{padding:9px 4px;gap:5px}
+
+/* ====================== FISIA · tema espacial ====================== */
+[hidden]{display:none!important}
+html{background:var(--bg)}
+body{margin:0;padding-inline:0;min-height:100dvh;overflow-x:hidden;background:radial-gradient(1200px 700px at 50% -10%,#0c1440 0%,transparent 60%),radial-gradient(900px 600px at 100% 100%,#1a0b3d 0%,transparent 55%),var(--bg)}
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.55;
+  background-image:radial-gradient(1px 1px at 12% 18%,#fff9,transparent),radial-gradient(1px 1px at 78% 12%,#9fe9ffcc,transparent),radial-gradient(1.5px 1.5px at 34% 72%,#fff8,transparent),radial-gradient(1px 1px at 90% 66%,#c9b3ffcc,transparent),radial-gradient(1px 1px at 55% 40%,#fff7,transparent),radial-gradient(1px 1px at 6% 88%,#9fe9ff99,transparent);
+  background-size:380px 380px;-webkit-mask-image:none;mask-image:none}
+.app{padding-inline:16px}
+@media (min-width:700px){.app{padding-inline:24px}}
+
+/* Vistas */
+.view{display:none}
+body[data-view=intro] #view-intro{display:flex}
+body[data-view=hub] #view-hub{display:flex}
+body[data-view=work] #view-work{display:block}
+body[data-view=tutor] #view-tutor{display:flex}
+.view.enter{animation:vin .55s cubic-bezier(.2,.7,.2,1) both}
+@keyframes vin{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+#view-intro.out{animation:vout .5s ease-in both}
+@keyframes vout{to{opacity:0;transform:scale(1.08)}}
+
+/* Átomo de fondo */
+.bg-atom{position:fixed;inset:0;width:100%;height:100%;z-index:-1;display:none;pointer-events:none}
+body[data-view=intro] .bg-atom{display:block;opacity:1}
+body[data-view=hub] .bg-atom{display:block;opacity:.6}
+
+/* Logotipo */
+.wordmark{margin:0;font:900 clamp(56px,13vw,132px)/1 var(--font-logo);letter-spacing:.14em;text-indent:.14em;text-transform:none;
+  background:linear-gradient(100deg,#8BF3FF 0%,#fff 32%,#B9A2FF 58%,#3DE8FF 100%);background-size:240% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 14px rgba(61,232,255,.55)) drop-shadow(0 0 42px rgba(139,92,255,.45));animation:shine 7s ease-in-out infinite alternate}
+@keyframes shine{to{background-position:100% 0}}
+.wordmark .ii{display:inline-block;position:relative;width:.16em;height:1ex;margin:0 .06em 0 .0em;vertical-align:baseline;border-radius:.03em;background:linear-gradient(#fff,#8BF3FF)}
+.wordmark .ii::before{content:"";position:absolute;left:50%;bottom:calc(100% + .1em);width:.2em;height:.2em;margin-left:-.1em;border-radius:50%;background:var(--signal);box-shadow:0 0 .2em var(--signal),0 0 .5em #ff9248;animation:nuc 2.4s ease-in-out infinite}
+.wordmark .ii::after{content:"";position:absolute;left:50%;bottom:calc(100% - .03em);width:.5em;height:.46em;margin-left:-.25em;border:.025em solid rgba(61,232,255,.9);border-radius:50%;transform:rotate(-30deg) scaleY(.4);animation:orb 3.2s linear infinite}
+@keyframes nuc{50%{transform:scale(1.25)}}
+@keyframes orb{to{transform:rotate(330deg) scaleY(.4)}}
+.wordmark.sm{font-size:clamp(30px,6vw,44px);letter-spacing:.12em;text-indent:.12em}
+
+/* Portada */
+#view-intro{position:fixed;inset:0;z-index:5;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:clamp(28px,7vh,64px) 20px calc(32px + env(safe-area-inset-bottom,0px));cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+.intro-sub{margin-top:14px;font:500 clamp(11px,2.8vw,14px) var(--font-mono);letter-spacing:.34em;text-transform:uppercase;color:#a9b8ee;text-shadow:0 0 12px rgba(61,232,255,.4)}
+.intro-tap{border:1px solid rgba(61,232,255,.45);background:rgba(4,10,30,.55);color:#dff8ff;padding:13px 26px;border-radius:999px;font:600 13px var(--font-display);letter-spacing:.2em;text-transform:uppercase;cursor:pointer;animation:tap 2.6s ease-in-out infinite;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+@keyframes tap{0%,100%{box-shadow:0 0 0 0 rgba(61,232,255,.0);opacity:.75}50%{box-shadow:0 0 28px 2px rgba(61,232,255,.35);opacity:1}}
+
+/* Menú */
+#view-hub{min-height:100dvh;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:36px 18px calc(36px + env(safe-area-inset-bottom,0px))}
+.hub-head{text-align:center;display:grid;gap:10px;justify-items:center}
+.hub-head p{font:500 13px var(--font-mono);letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;width:min(1080px,100%)}
+@media (max-width:860px){.cards{grid-template-columns:1fr;max-width:520px}}
+.card{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"ico tit" "ico dsc" "chips chips";gap:4px 16px;align-content:start;padding:22px 20px;color:var(--fg);text-decoration:none;min-height:100px;transition:transform .25s ease;-webkit-tap-highlight-color:transparent}
+@media (min-width:861px){.card{grid-template-columns:1fr;grid-template-areas:"ico" "tit" "dsc" "chips";gap:10px;padding:28px 24px;min-height:300px}}
+.card:hover,.card:focus-visible{transform:translateY(-6px)}
+.card .ico{grid-area:ico;display:grid;place-items:center;width:68px;height:68px;border-radius:18px;background:linear-gradient(145deg,rgba(61,232,255,.16),rgba(139,92,255,.16));border:1px solid var(--line)}
+.card h3{grid-area:tit;margin:0;font:700 20px/1.2 var(--font-display);align-self:end}
+.card p{grid-area:dsc;margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+.card .chips{grid-area:chips;margin-top:6px}
+.card .chip{cursor:inherit;font-size:11px;padding:3px 9px}
+.card .go{display:none}
+.card .ico img{width:100%;height:100%;object-fit:cover;border-radius:inherit;filter:grayscale(1) sepia(1) hue-rotate(158deg) saturate(3) brightness(1.15);mix-blend-mode:screen}
+
+/* Borde que gira + halo (como el botón del video) */
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.glow{position:relative;isolation:isolate;border-radius:var(--r,20px);background:linear-gradient(160deg,rgba(14,22,52,.86),rgba(8,12,30,.86));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);--c1:var(--accent);--c2:rgba(139,92,255,.55)}
+.glow::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;z-index:2;
+  background:conic-gradient(from var(--a),rgba(130,160,255,.18) 0 55%,var(--c1) 78%,#fff 88%,rgba(130,160,255,.18) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:spina 4.5s linear infinite}
+.glow::after{content:"";position:absolute;inset:-12px;z-index:-1;border-radius:inherit;background:radial-gradient(closest-side,var(--c2),transparent 75%);opacity:.18;filter:blur(16px);transition:opacity .35s ease;pointer-events:none}
+.glow:hover::after,.glow:focus-within::after,.glow.on::after{opacity:.75}
+.glow:hover::before,.glow:focus-within::before{animation-duration:1.8s}
+@keyframes spina{to{--a:360deg}}
+.card.c2{--c1:#B38CFF;--c2:rgba(139,92,255,.6)}
+.card.c3{--c1:#4ADE9A;--c2:rgba(61,232,255,.5)}
+
+/* Barra superior de las vistas internas */
+.top{position:sticky;top:0;z-index:20;margin-inline:-16px;padding:10px 16px;background:linear-gradient(rgba(3,5,15,.92),rgba(3,5,15,.7));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+@media (min-width:700px){.top{margin-inline:-24px;padding-inline:24px}}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
+.nav-l{display:flex;align-items:center;gap:12px;min-width:0}
+.back{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--panel-2);color:var(--fg);font:600 12.5px var(--font-display);letter-spacing:.06em;text-decoration:none;cursor:pointer;white-space:nowrap}
+.back:hover{border-color:var(--accent);color:var(--accent)}
+.brand h1{font:900 22px/1 var(--font-logo);letter-spacing:.12em;color:var(--fg)}
+.brand h1 span{color:var(--accent)}
+.brand p{margin-top:4px}
+.brand{gap:10px}
+.nav-title{font:600 13px var(--font-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:560px){.brand p,.nav-title{display:none}}
+.status{background:var(--panel-2);backdrop-filter:none}
+.work{padding-top:18px}
+
+/* Paneles de cristal */
+.panel{background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04)}
+.panel::before,.panel::after{border-radius:0;border-color:var(--accent)}
+.panel::before{border-top-left-radius:16px}.panel::after{border-bottom-right-radius:16px}
+.btn{border-radius:10px}
+.btn.primary,.btn.big.primary{position:relative;overflow:hidden;border:0;color:#fff;background:linear-gradient(120deg,#6A3DFF,#2F8CFF 60%,#26D3F5);box-shadow:0 0 0 1px rgba(255,255,255,.14) inset,0 8px 28px rgba(106,61,255,.45);transition:box-shadow .3s,transform .2s,filter .3s}
+.btn.primary::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-120%);animation:sheen 3.6s ease-in-out infinite}
+@keyframes sheen{55%,100%{transform:translateX(120%)}}
+.btn.primary:hover{box-shadow:0 0 0 1px rgba(255,255,255,.25) inset,0 0 38px rgba(61,232,255,.55),0 10px 32px rgba(106,61,255,.55);filter:none;transform:translateY(-1px)}
+.btn.primary[disabled]{animation:none;box-shadow:none;background:#26304f;color:#8f9dc8}
+.btn.primary[disabled]::after{display:none}
+.btn.big{border-radius:999px;padding:14px 18px}
+.btn .sp{width:16px;height:16px;flex:none}
+.seg,.tabs{backdrop-filter:none}
+.seg button[aria-selected=true]{background:linear-gradient(120deg,rgba(61,232,255,.95),rgba(139,92,255,.95));color:#031019}
+textarea,input[type=text],select{background:rgba(3,6,20,.65)}
+.thumb img{background:#000}
+
+/* ---------- Barras de chat animadas ---------- */
+.glowbar{--r:999px;display:flex;align-items:center;gap:8px;min-height:56px;padding:6px 6px 6px 18px;margin-top:12px;background:#0A0E20;transition:background .35s}
+.glowbar:focus-within{background:#0E1230}
+.glowbar::after{inset:-18px;background:radial-gradient(closest-side,rgba(139,92,255,.75),rgba(61,232,255,.25) 60%,transparent 80%)}
+.glowbar .spark{flex:none;width:20px;height:20px;color:#b9a7ff;transition:color .3s,transform .5s}
+.glowbar:focus-within .spark{color:#fff;transform:rotate(90deg) scale(1.15);filter:drop-shadow(0 0 6px #c9b3ff)}
+.glowbar .spark path{transform-box:fill-box;transform-origin:center;animation:tw 2.4s ease-in-out infinite}
+.glowbar .spark path:nth-child(2){animation-delay:.6s}.glowbar .spark path:nth-child(3){animation-delay:1.2s}
+@keyframes tw{0%,100%{opacity:.55;transform:scale(.85)}50%{opacity:1;transform:scale(1.1)}}
+.glowbar input[type=text]{flex:1;min-width:0;border:0;background:transparent;box-shadow:none;padding:10px 4px;font-size:15px;outline:none}
+.glowbar input[type=text]::placeholder{color:#7f8cb8}
+.gb-btn{flex:none;display:grid;place-items:center;width:42px;height:42px;border:0;border-radius:50%;background:transparent;color:#9fb0e6;cursor:pointer;transition:color .2s,background .2s}
+.gb-btn:hover{color:var(--accent);background:rgba(61,232,255,.1)}
+.gb-btn[aria-pressed=true]{color:var(--accent);background:rgba(61,232,255,.16)}
+.gb-send{flex:none;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px;border:0;border-radius:999px;color:#fff;font:600 13.5px var(--font-display);letter-spacing:.04em;cursor:pointer;position:relative;overflow:hidden;background:linear-gradient(120deg,#6A3DFF,#2F8CFF 70%,#26D3F5);box-shadow:0 0 18px rgba(106,61,255,.5);transition:box-shadow .3s,transform .15s}
+.gb-send:hover{box-shadow:0 0 30px rgba(61,232,255,.65)}
+.gb-send:active{transform:scale(.96)}
+.gb-send[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
+.glowbar.busy::before{animation-duration:1s}
+.glowbar.busy::after{opacity:.9}
+.glowbar.busy .gb-send::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);animation:sheen 1.1s linear infinite}
+@media (max-width:480px){.gb-send span{display:none}.gb-send{width:44px;padding:0;justify-content:center}.glowbar{padding-left:12px;gap:2px}.glowbar .spark{display:none}.gb-btn{width:34px;height:34px}}
+
+/* Chat de preguntas y burbujas */
+.chat-log{scrollbar-width:thin;scrollbar-color:#2b3b78 transparent}
+.bubble{border-radius:16px;animation:bin .3s ease both}
+@keyframes bin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.bubble.user{background:linear-gradient(120deg,#5a3ae8,#2b7ee8);color:#fff;border-bottom-right-radius:4px}
+.bubble.ai{background:rgba(24,34,76,.7);border-bottom-left-radius:4px}
+.typing{display:inline-flex;gap:5px;padding:4px 0}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:dot 1s ease-in-out infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{transform:scale(.55);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+/* ---------- Corregir ---------- */
+.verdict{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;margin-bottom:18px}
+.gauge{--p:0;position:relative;display:grid;place-items:center;width:92px;height:92px;border-radius:50%;background:conic-gradient(var(--gc,var(--accent)) calc(var(--p)*1%),rgba(130,160,255,.16) 0);animation:gfill 1s ease-out both}
+.gauge::before{content:"";position:absolute;inset:8px;border-radius:50%;background:#080d22}
+.gauge b{position:relative;font:700 26px var(--font-display)}
+.gauge small{position:relative;display:block;font:500 10px var(--font-mono);color:var(--muted);margin-top:-6px;text-align:center}
+.vbadge{display:inline-block;padding:3px 12px;border-radius:999px;border:1px solid currentColor;font:600 12px var(--font-mono);letter-spacing:.08em;text-transform:uppercase}
+.vb-ok{color:var(--ok)}.vb-warn{color:var(--signal)}.vb-bad{color:var(--bad)}
+.rev{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.rev li{display:grid;grid-template-columns:30px 1fr;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);border-left:3px solid var(--st,var(--line))}
+.rev .st{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--st);color:#04101c;font:700 14px var(--font-mono)}
+.rev h4{margin:0 0 3px;font:600 14.5px var(--font-display)}
+.rev p{margin:0;font-size:14px}
+.rev .fix{margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(74,222,154,.09);border:1px dashed rgba(74,222,154,.45);font:13px/1.6 var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.rev .s-ok{--st:var(--ok)}.rev .s-aviso{--st:var(--signal)}.rev .s-error{--st:var(--bad)}
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin:16px 0}
+.vs>div{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel-2)}
+.vs h3{margin-bottom:6px}
+.vs .good{border-color:var(--ok)}.vs .good h3{color:var(--ok)}
+.errs{margin:0;padding-left:18px;display:grid;gap:6px}
+.corr-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+
+/* ---------- Tutor holográfico ---------- */
+#view-tutor{min-height:100dvh;flex-direction:column}
+.tutor-wrap{flex:1;display:grid;grid-template-columns:minmax(300px,430px) minmax(0,1fr);gap:20px;width:min(1240px,100%);margin:0 auto;padding:18px 20px 20px;min-height:0;height:calc(100dvh - 62px)}
+.holo{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
+.stage{position:relative;width:100%;height:clamp(250px,42vh,380px);display:grid;place-items:center;--s:min(250px,60%);perspective:900px}
+.cone{position:absolute;left:50%;bottom:28px;width:92%;height:88%;transform:translateX(-50%);clip-path:polygon(38% 100%,62% 100%,100% 0,0 0);background:linear-gradient(to top,rgba(61,232,255,.42),rgba(61,232,255,.10) 55%,transparent);opacity:.8;animation:cone 4s ease-in-out infinite}
+@keyframes cone{50%{opacity:1}}
+.pbase{position:absolute;left:50%;bottom:10px;width:58%;height:34px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,255,255,.95) 0,rgba(61,232,255,.85) 22%,rgba(61,232,255,.2) 55%,transparent 72%);filter:blur(1px)}
+.pbase::after{content:"";position:absolute;left:12%;right:12%;bottom:-8px;height:10px;border-radius:50%;background:rgba(10,20,40,.9);box-shadow:0 0 24px rgba(61,232,255,.5)}
+.ring{position:absolute;left:50%;bottom:20px;border:1.5px dashed rgba(61,232,255,.55);border-radius:50%;transform:translateX(-50%) rotateX(74deg);animation:rspin 14s linear infinite;pointer-events:none}
+.ring.r1{width:62%;aspect-ratio:1}.ring.r2{width:82%;aspect-ratio:1;border-style:solid;border-color:rgba(139,92,255,.35);animation-duration:22s;animation-direction:reverse}
+.ring.r3{width:100%;aspect-ratio:1;border-color:rgba(61,232,255,.22);animation-duration:30s}
+@keyframes rspin{to{transform:translateX(-50%) rotateX(74deg) rotateZ(360deg)}}
+.avatar{position:relative;width:var(--s);aspect-ratio:1;margin-bottom:34px;mix-blend-mode:screen;animation:flt 5.5s ease-in-out infinite;-webkit-mask-image:radial-gradient(ellipse 66% 72% at 50% 46%,#000 62%,transparent 100%);mask-image:radial-gradient(ellipse 66% 72% at 50% 46%,#000 62%,transparent 100%)}
+@keyframes flt{50%{transform:translateY(-9px)}}
+.av{position:absolute;inset:0;background:url(/static/profe.jpg) center/cover no-repeat;-webkit-mask-image:repeating-linear-gradient(0deg,#000 0 2px,rgba(0,0,0,.4) 2px 3px);mask-image:repeating-linear-gradient(0deg,#000 0 2px,rgba(0,0,0,.4) 2px 3px);filter:grayscale(1) contrast(1.25) brightness(1.3) sepia(1) hue-rotate(160deg) saturate(3.2)}
+.av-r{filter:grayscale(1) contrast(1.2) brightness(1.2) sepia(1) hue-rotate(250deg) saturate(4);mix-blend-mode:screen;opacity:0;animation:gl1 6s steps(1) infinite}
+.av-c{opacity:0;animation:gl2 6s steps(1) infinite}
+@keyframes gl1{0%,86%,100%{opacity:0;transform:none}87%{opacity:.55;transform:translate(-5px,1px);clip-path:inset(18% 0 52% 0)}90%{opacity:.5;transform:translate(4px,-1px);clip-path:inset(60% 0 12% 0)}93%{opacity:0}}
+@keyframes gl2{0%,40%,100%{opacity:0}41%{opacity:.5;transform:translate(3px,0);clip-path:inset(30% 0 44% 0)}43%{opacity:0}}
+.scan{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.scan::after{content:"";position:absolute;left:0;right:0;height:22%;background:linear-gradient(transparent,rgba(130,255,255,.38),transparent);animation:sweep 3.6s linear infinite}
+@keyframes sweep{from{top:-25%}to{top:105%}}
+.avatar::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(61,232,255,.22),transparent 65%);mix-blend-mode:screen;animation:flick 3.3s steps(1) infinite}
+@keyframes flick{0%,92%,100%{opacity:1}94%{opacity:.55}96%{opacity:.95}98%{opacity:.6}}
+.mote{position:absolute;bottom:34px;left:calc(50% + var(--x)*1px);width:3px;height:3px;border-radius:50%;background:#9ff6ff;box-shadow:0 0 6px #3de8ff;opacity:0;animation:rise var(--d) linear infinite;animation-delay:var(--dl)}
+@keyframes rise{0%{transform:translateY(0);opacity:0}15%{opacity:.9}100%{transform:translateY(-250px);opacity:0}}
+.holo.speaking .avatar{animation:flt 5.5s ease-in-out infinite,talk .42s ease-in-out infinite}
+@keyframes talk{50%{filter:brightness(1.35) drop-shadow(0 0 14px rgba(61,232,255,.8))}}
+.holo.speaking .ring{border-color:rgba(255,255,255,.7)}
+.eq{display:flex;align-items:flex-end;gap:4px;height:22px;opacity:.35;transition:opacity .3s}
+.eq i{width:4px;height:5px;border-radius:2px;background:linear-gradient(var(--accent),var(--violet))}
+.holo.speaking .eq{opacity:1}
+.holo.speaking .eq i{animation:eq .7s ease-in-out infinite;animation-delay:calc(var(--k)*.08s)}
+@keyframes eq{50%{height:22px}}
+.holo-name{font:600 12px var(--font-mono);letter-spacing:.22em;text-transform:uppercase;color:var(--accent);text-shadow:0 0 10px rgba(61,232,255,.6)}
+.core{position:relative;width:100%;padding:14px 16px 16px;border:1px solid rgba(61,232,255,.35);border-radius:12px;background:linear-gradient(160deg,rgba(61,232,255,.10),rgba(139,92,255,.07));box-shadow:0 0 24px rgba(61,232,255,.12) inset}
+.core-lbl{display:block;margin-bottom:8px;font:500 10px var(--font-mono);letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.core-body{min-height:54px;display:grid;place-items:center;text-align:center;overflow-x:auto;font-size:1.25em;color:#e9fdff;text-shadow:0 0 12px rgba(61,232,255,.75)}
+.core-body.empty{font-size:13px;color:var(--muted);text-shadow:none;font-style:italic}
+.core-body.proj{animation:proj .9s ease-out both}
+@keyframes proj{0%{opacity:0;filter:blur(8px);transform:scale(.9)}40%{opacity:1;filter:blur(0)}55%{opacity:.5}70%{opacity:1}100%{opacity:1;transform:none}}
+.ctx{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);font:12px var(--font-mono);color:var(--muted)}
+.ctx b{color:var(--fg);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tchat{display:flex;flex-direction:column;min-width:0;min-height:0;padding:16px;border-radius:20px}
+.tlog{flex:1;max-height:none;min-height:0;align-content:start;padding:2px 4px 8px}
+.tchat .chips{margin-top:6px}
+.fbox{display:block;margin:8px 0;padding:8px 12px;border-radius:10px;border:1px solid rgba(61,232,255,.5);background:rgba(61,232,255,.08);text-align:center;overflow-x:auto;cursor:pointer;box-shadow:0 0 18px rgba(61,232,255,.15)}
+.bubble.ai .katex{font-size:1.06em}
+.bubble strong{color:#fff}
+.attach{display:flex;align-items:center;gap:8px;margin-top:8px;font:12px var(--font-mono);color:var(--muted)}
+.attach img{height:38px;border-radius:6px;border:1px solid var(--line)}
+@media (max-width:900px){
+  .tutor-wrap{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:10px;padding:10px 12px 12px}
+  .holo{display:grid;grid-template-columns:132px minmax(0,1fr);grid-template-areas:"stage core" "stage ctx";gap:8px 12px;align-items:center}
+  .stage{grid-area:stage;height:150px;--s:104px}
+  .stage .ring.r3,.stage .mote:nth-child(n+7){display:none}
+  .cone{height:100%}
+  .core{grid-area:core;padding:10px 12px}.core-body{min-height:34px;font-size:1.05em}
+  .ctx{grid-area:ctx}
+  .eq,.holo-name{display:none}
+  .tchat{padding:12px;border-radius:16px}
+  .glowbar{margin-top:8px}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body data-view="intro">
+
+<canvas class="bg-atom" id="atom" aria-hidden="true"></canvas>
+
+<!-- PORTADA -->
+<section class="view" id="view-intro" aria-label="Portada de FisIA">
+  <div>
+    <h1 class="wordmark" aria-label="FisIA">F<span class="ii" aria-hidden="true"></span>sIA</h1>
+    <p class="intro-sub">Física × Inteligencia Artificial</p>
+  </div>
+  <button type="button" class="intro-tap" id="intro-go">Toca la pantalla para entrar</button>
+</section>
+
+<!-- MENÚ -->
+<section class="view" id="view-hub" aria-labelledby="hub-t">
+  <div class="hub-head">
+    <h2 class="wordmark sm" id="hub-t" aria-label="FisIA">F<span class="ii" aria-hidden="true"></span>sIA</h2>
+    <p>¿Qué quieres hacer hoy?</p>
+  </div>
+  <nav class="cards" aria-label="Opciones">
+    <a class="card glow c1" href="#/resolver">
+      <span class="ico"><svg width="34" height="34" viewBox="0 0 40 40" fill="none" stroke="var(--accent)" stroke-width="2" aria-hidden="true"><ellipse cx="20" cy="20" rx="16" ry="6" transform="rotate(-32 20 20)"/><ellipse cx="20" cy="20" rx="16" ry="6" transform="rotate(32 20 20)" opacity=".65"/><circle cx="20" cy="20" r="3.6" fill="var(--signal)" stroke="none"/></svg></span>
+      <h3>Resolver un ejercicio</h3>
+      <p>Sube una foto, PDF, audio o texto. Obtén el resumen, el paso a paso, gráficas animadas, el reporte en PDF y el código Python ejecutable.</p>
+      <span class="chips"><span class="chip">Paso a paso</span><span class="chip">PDF</span><span class="chip">Python</span></span>
+    </a>
+    <a class="card glow c2" href="#/corregir">
+      <span class="ico"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#B38CFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h11M4 10h7M4 15h5"/><path d="M13 19l2.2-.5L22 11.7a1.9 1.9 0 0 0-2.7-2.7L12.5 15.8z"/><path d="M4 19.5h6"/></svg></span>
+      <h3>Corregir uno ya hecho</h3>
+      <p>Entrega tu resolución y FisIA marca qué pasos están bien, dónde está el error, cómo arreglarlo y te sugiere una nota.</p>
+      <span class="chips"><span class="chip">Errores</span><span class="chip">Nota</span><span class="chip">Consejos</span></span>
+    </a>
+    <a class="card glow c3" href="#/tutor">
+      <span class="ico"><img src="/static/profe.jpg" alt=""></span>
+      <h3>Tutor IA holográfico</h3>
+      <p>Un profesor interactivo que te guía con preguntas, proyecta las fórmulas clave en su núcleo holográfico y valida tu razonamiento.</p>
+      <span class="chips"><span class="chip">Socrático</span><span class="chip">Voz</span><span class="chip">Fórmulas</span></span>
+    </a>
+  </nav>
+</section>
+
+<div class="view" id="view-work"><div class="app">
+  <header class="top">
+    <div class="nav">
+      <div class="nav-l">
+        <a class="back" href="#/menu" aria-label="Volver al menú">&larr; Menú</a>
+        <div class="brand">
+          <svg class="mark" id="logo" viewBox="0 0 40 40" width="38" height="38" aria-hidden="true">
+        <g fill="none" stroke="var(--accent)" stroke-width="1.8">
+          <ellipse cx="20" cy="20" rx="17" ry="6.5" transform="rotate(-32 20 20)"/>
+          <ellipse cx="20" cy="20" rx="17" ry="6.5" transform="rotate(32 20 20)" opacity=".6"/>
+          <circle cx="32.2" cy="11.4" r="2.2" fill="var(--accent)" stroke="none"/>
+          <circle cx="7.8" cy="28.6" r="2.2" fill="var(--accent)" stroke="none"/>
+        </g>
+        <circle cx="20" cy="20" r="3.8" fill="var(--signal)"/>
+      </svg>
+          <div><h1>FisIA</h1><p id="nav-task">Resolver un ejercicio</p></div>
+        </div>
+      </div>
+      <div class="status" id="estado-ia" role="status"><span class="dot"></span><span id="estado-texto">Conectando con la IA…</span></div>
+    </div>
+  </header>
+
+  <main class="work">
+    <!-- ENTRADA -->
+    <section class="panel entrada" aria-labelledby="h-entrada">
+      <div class="panel-head"><h2 id="h-entrada">Entrada del problema</h2><span class="tag">multimodal</span></div>
+
+      <div class="seg" role="tablist" aria-label="Formato de entrada" id="tabs-in">
+        <button type="button" role="tab" id="tab-texto" data-mode="texto" aria-selected="true" aria-controls="in-texto">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Texto</button>
+        <button type="button" role="tab" id="tab-imagen" data-mode="imagen" aria-selected="false" tabindex="-1" aria-controls="in-imagen">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/></svg>Imagen</button>
+        <button type="button" role="tab" id="tab-pdf" data-mode="pdf" aria-selected="false" tabindex="-1" aria-controls="in-pdf">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 14h6M10 17h4"/></svg>PDF</button>
+        <button type="button" role="tab" id="tab-audio" data-mode="audio" aria-selected="false" tabindex="-1" aria-controls="in-audio">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Audio</button>
+      </div>
+
+      <div id="in-texto" role="tabpanel" aria-labelledby="tab-texto">
+        <label class="lbl" for="enunciado" id="lbl-enun">Enunciado</label>
+        <textarea id="enunciado" rows="6" placeholder="Escribe o pega aquí el problema de física…"></textarea>
+        <div class="chips" id="ejemplos" aria-label="Ejemplos de problemas"></div>
+        <p class="hint">¿Tienes el enunciado en audio? Usa la pestaña Audio: se transcribe con Gemini.</p>
+      </div>
+
+      <div id="in-imagen" role="tabpanel" aria-labelledby="tab-imagen" hidden>
+        <div class="drop" id="drop-img">
+          <strong>Arrastra una foto del ejercicio</strong>
+          <span>o elige una imagen de tu dispositivo (JPG, PNG, WebP)</span>
+          <div class="drop-btns">
+            <label class="btn small" for="img-file">Elegir imagen</label>
+            <label class="btn small" for="cam-file">Tomar foto</label>
+          </div>
+          <input class="sr-only" type="file" id="img-file" accept="image/*">
+          <input class="sr-only" type="file" id="cam-file" accept="image/*" capture="environment">
+        </div>
+        <div class="thumb" id="thumb-img" hidden>
+          <img id="thumb-img-el" alt="Vista previa del ejercicio">
+          <div class="meta"><span id="thumb-img-name"></span><button type="button" class="btn small" id="quitar-img">Quitar</button></div>
+        </div>
+      </div>
+
+      <div id="in-pdf" role="tabpanel" aria-labelledby="tab-pdf" hidden>
+        <div class="drop" id="drop-pdf">
+          <strong>Arrastra un PDF con enunciados o guías</strong>
+          <span>La página lee el texto; si es un escaneo, envía las páginas como imagen.</span>
+          <div class="drop-btns"><label class="btn small" for="pdf-file">Elegir PDF</label></div>
+          <input class="sr-only" type="file" id="pdf-file" accept="application/pdf,.pdf">
+        </div>
+        <div class="thumb" id="pdf-info" hidden>
+          <div class="meta"><span id="pdf-name"></span><button type="button" class="btn small" id="quitar-pdf">Quitar</button></div>
+          <div class="hint" id="pdf-detalle"></div>
+          <div>
+            <label class="lbl" for="pdf-pages">Páginas a usar (opcional)</label>
+            <input type="text" id="pdf-pages" placeholder="Ej.: 2-3 o 1,4" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div id="in-audio" role="tabpanel" aria-labelledby="tab-audio" hidden>
+        <div class="drop" id="drop-audio">
+          <strong>Arrastra un audio con el enunciado</strong>
+          <span>MP3, WAV, OGG, FLAC o AAC (máximo 14 MB). Se transcribe con Gemini.</span>
+          <div class="drop-btns"><label class="btn small" for="audio-file">Elegir audio</label></div>
+          <input class="sr-only" type="file" id="audio-file" accept=".mp3,.wav,.m4a,.ogg,.flac,.aac,audio/mpeg,audio/wav,audio/ogg,audio/flac,audio/aac,audio/mp4">
+        </div>
+        <p class="hint" id="audio-estado" role="status"></p>
+        <label class="lbl" for="audio-texto">Transcripción (editable)</label>
+        <textarea id="audio-texto" rows="5" placeholder="Aquí aparecerá el texto del audio…"></textarea>
+      </div>
+
+      <div class="stack" style="margin-top:16px">
+        <div id="nota-wrap" hidden>
+          <label class="lbl" for="nota">¿Qué ejercicio resolver? (opcional)</label>
+          <input type="text" id="nota" placeholder="Ej.: problema 3, o resolver solo el inciso b" autocomplete="off">
+        </div>
+        <div>
+          <label class="lbl" for="precision">Profundidad de análisis</label>
+          <select id="precision">
+            <option value="default">Estándar (recomendado)</option>
+            <option value="quick">Rápida (gasta menos cupo, menos precisa)</option>
+          </select>
+        </div>
+        <button type="button" class="btn primary big" id="btn-resolver"><svg class="sp" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6z"/><path d="M18 11l.9 2.1L21 14l-2.1.9L18 17l-.9-2.1L15 14l2.1-.9z"/><path d="M17 3l.6 1.4L19 5l-1.4.6L17 7l-.6-1.4L15 5l1.4-.6z"/></svg><span id="btn-resolver-t">Resolver con FisIA</span></button>
+        <button type="button" class="btn big" id="btn-stop" hidden>Detener</button>
+      </div>
+
+      <ol class="fases" id="fases" hidden>
+        <li>Leer entrada</li><li>Analizar tema</li><li>Resolver</li><li>Generar código</li>
+      </ol>
+      <pre class="consola" id="consola" hidden aria-label="Progreso de la IA"></pre>
+      <p class="msg" id="error" role="alert" hidden></p>
+      <p class="note" id="nota-ia" hidden></p>
+    </section>
+
+    <!-- LABORATORIO -->
+    <section class="panel lab" id="lab" aria-labelledby="lab-tema">
+      <div class="lab-head">
+        <div class="lab-title">
+          <span class="badge" id="badge-ejemplo">Ejemplo precargado</span>
+          <h2 id="lab-tema"></h2>
+          <p id="lab-tipo"></p>
+        </div>
+        <button type="button" class="btn primary" id="btn-pdf">Descargar reporte PDF</button>
+      </div>
+      <details class="cover">
+        <summary>Datos para la portada del PDF (opcional)</summary>
+        <div class="cover-grid">
+          <div><label class="lbl" for="alumno">Nombre del estudiante</label><input type="text" id="alumno" autocomplete="name"></div>
+          <div><label class="lbl" for="curso">Asignatura</label><input type="text" id="curso" placeholder="Ej.: Física I"></div>
+        </div>
+      </details>
+
+      <div class="tabs" role="tablist" aria-label="Resultados" id="tabs-out">
+        <button type="button" role="tab" id="tab-resumen" data-tab="resumen" aria-selected="true" aria-controls="p-resumen">Resumen</button>
+        <button type="button" role="tab" id="tab-pasos" data-tab="pasos" aria-selected="false" tabindex="-1" aria-controls="p-pasos">Paso a paso</button>
+        <button type="button" role="tab" id="tab-sim" data-tab="sim" aria-selected="false" tabindex="-1" aria-controls="p-sim">Simulación</button>
+        <button type="button" role="tab" id="tab-codigo" data-tab="codigo" aria-selected="false" tabindex="-1" aria-controls="p-codigo">Código Python</button>
+        <button type="button" role="tab" id="tab-chat" data-tab="chat" aria-selected="false" tabindex="-1" aria-controls="p-chat">Preguntas</button>
+      </div>
+
+      <div class="tabpanel" id="p-resumen" role="tabpanel" aria-labelledby="tab-resumen"></div>
+      <div class="tabpanel" id="p-pasos" role="tabpanel" aria-labelledby="tab-pasos" hidden></div>
+
+      <div class="tabpanel" id="p-sim" role="tabpanel" aria-labelledby="tab-sim" hidden>
+        <div class="sim" id="sim-box">
+          <div class="sim-title" id="sim-titulo"></div>
+          <div class="legend" id="sim-leyenda"></div>
+          <div class="sim-canvas" id="sim-wrap"><canvas id="sim-canvas" role="img" aria-label="Gráfica animada del fenómeno"></canvas></div>
+          <div class="sim-ctrl">
+            <button type="button" class="btn small" id="sim-play">Pausa</button>
+            <input type="range" id="sim-prog" min="0" max="1000" value="0" aria-label="Posición en el tiempo">
+            <label class="sr-only" for="sim-vel">Velocidad</label>
+            <select id="sim-vel"><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+          </div>
+          <div class="readout" id="sim-lectura"></div>
+        </div>
+        <div class="empty" id="sim-vacio" hidden>Este ejercicio no tiene una gráfica en función del tiempo. La visualización completa está en la pestaña Código Python.</div>
+        <p class="note">Vista previa calculada en esta página. La animación completa, con vectores y opción de guardar GIF, es el programa de la pestaña Código Python.</p>
+      </div>
+
+      <div class="tabpanel" id="p-codigo" role="tabpanel" aria-labelledby="tab-codigo" hidden>
+        <div id="code-box">
+          <div class="code-bar">
+            <div class="grp">
+              <button type="button" class="btn small primary" id="code-copy">Copiar código</button>
+              <button type="button" class="btn small" id="code-save">Descargar .txt</button>
+              <button type="button" class="btn small" id="code-reset">Restaurar original</button>
+            </div>
+            <span class="tag" id="code-info"></span>
+          </div>
+          <div class="editor">
+            <pre class="ed" id="code-hl" aria-hidden="true"></pre>
+            <textarea class="ed" id="code-ta" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Código Python editable"></textarea>
+          </div>
+          <div class="run" id="code-run"></div>
+          <p class="note">El código es editable: cambia los parámetros del inicio y vuelve a ejecutarlo. Al descargar, quita la terminación .txt para usarlo como .py.</p>
+        </div>
+        <div class="empty" id="code-vacio" hidden>La IA no devolvió código para este ejercicio. Pulsa «Resolver con FisIA» otra vez para generarlo.</div>
+      </div>
+
+      <div class="tabpanel" id="p-chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
+        <div class="chat-log" id="chat-log" role="log" aria-live="polite"></div>
+        <div class="chips" id="chat-sug"></div>
+        <form class="glowbar glow" id="chat-form">
+          <svg class="spark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6z"/><path d="M18 11l.9 2.1L21 14l-2.1.9L18 17l-.9-2.1L15 14l2.1-.9z"/><path d="M17 3l.6 1.4L19 5l-1.4.6L17 7l-.6-1.4L15 5l1.4-.6z"/></svg>
+          <label class="sr-only" for="chat-input">Tu pregunta</label>
+          <input type="text" id="chat-input" placeholder="Pregunta sobre este ejercicio…" autocomplete="off">
+          <button type="submit" class="gb-send" id="chat-send"><span>Enviar</span><svg class="sp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </form>
+        <p class="note" id="chat-aviso" hidden>Las preguntas necesitan la IA: revisa tu clave en el archivo .env.</p>
+      </div>
+    </section>
+
+    <!-- CORRECCIÓN -->
+    <section class="panel lab" id="corr" aria-labelledby="corr-h" hidden>
+      <div class="panel-head"><h2 id="corr-h">Corrección</h2><span class="tag" id="corr-tag">esperando ejercicio</span></div>
+      <div id="corr-body"><div class="empty">Pega o sube tu ejercicio resuelto y pulsa «Corregir con FisIA». Te marcaré qué pasos están bien, dónde está el error y cómo arreglarlo.</div></div>
+    </section>
+  </main>
+
+  <p class="foot">FisIA es un proyecto universitario. Las resoluciones generadas por IA pueden contener errores: revisa los cálculos y las unidades antes de entregar un trabajo.</p>
+</div></div>
+
+<!-- TUTOR -->
+<section class="view" id="view-tutor" aria-label="Tutor IA">
+  <header class="top"><div class="nav">
+    <div class="nav-l">
+      <a class="back" href="#/menu" aria-label="Volver al menú">&larr; Menú</a>
+      <div class="brand"><svg class="mark" viewBox="0 0 40 40" width="38" height="38" aria-hidden="true">
+        <g fill="none" stroke="var(--accent)" stroke-width="1.8">
+          <ellipse cx="20" cy="20" rx="17" ry="6.5" transform="rotate(-32 20 20)"/>
+          <ellipse cx="20" cy="20" rx="17" ry="6.5" transform="rotate(32 20 20)" opacity=".6"/>
+          <circle cx="32.2" cy="11.4" r="2.2" fill="var(--accent)" stroke="none"/>
+          <circle cx="7.8" cy="28.6" r="2.2" fill="var(--accent)" stroke="none"/>
+        </g>
+        <circle cx="20" cy="20" r="3.8" fill="var(--signal)"/>
+      </svg><div><h1>FisIA</h1></div></div>
+    </div>
+    <span class="nav-title">Tutor IA</span>
+  </div></header>
+  <div class="tutor-wrap">
+    <aside class="holo" id="holo" aria-label="Tutor holográfico">
+      <div class="stage">
+        <div class="cone"></div>
+        <div class="ring r3"></div><div class="ring r2"></div><div class="ring r1"></div>
+        <div class="motes" id="motes"></div>
+        <div class="avatar" role="img" aria-label="Avatar holográfico del profesor">
+          <div class="av"></div><div class="av av-r"></div><div class="av av-c"></div><div class="scan"></div>
+        </div>
+        <div class="pbase"></div>
+      </div>
+      <div class="eq" id="eq" aria-hidden="true"></div>
+      <div class="holo-name">Tutor FisIA</div>
+      <div class="core" aria-live="polite">
+        <span class="core-lbl">Núcleo holográfico</span>
+        <div class="core-body empty" id="core-body">Aquí proyectaré la fórmula clave de cada paso.</div>
+      </div>
+      <div class="ctx" id="tutor-ctx" hidden><span>Problema en curso: <b id="tutor-ctx-t"></b></span><button type="button" class="btn small" id="tutor-ctx-x">Quitar</button></div>
+    </aside>
+    <div class="tchat panel">
+      <div class="chat-log tlog" id="tutor-log" role="log" aria-live="polite"></div>
+      <div class="chips" id="tutor-sug"></div>
+      <div class="attach" id="t-attach" hidden></div>
+      <form class="glowbar glow" id="tutor-form">
+        <svg class="spark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6z"/><path d="M18 11l.9 2.1L21 14l-2.1.9L18 17l-.9-2.1L15 14l2.1-.9z"/><path d="M17 3l.6 1.4L19 5l-1.4.6L17 7l-.6-1.4L15 5l1.4-.6z"/></svg>
+        <label class="sr-only" for="tutor-input">Mensaje para el tutor</label>
+        <input type="text" id="tutor-input" placeholder="Escribe tu duda…" autocomplete="off">
+        <label class="gb-btn" for="t-img" title="Adjuntar foto del ejercicio"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/></svg></label>
+        <label class="gb-btn" for="t-aud" title="Subir un audio"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></label>
+        <button type="button" class="gb-btn" id="t-voz" aria-pressed="false" title="Leer las respuestas en voz alta"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+        <button type="submit" class="gb-send" id="tutor-send"><span>Enviar</span><svg class="sp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <input class="sr-only" type="file" id="t-img" accept="image/*">
+        <input class="sr-only" type="file" id="t-aud" accept=".mp3,.wav,.m4a,.ogg,.flac,.aac,audio/*">
+      </form>
+      <p class="note" id="tutor-aviso" hidden>El tutor necesita la IA: revisa que GEMINI_API_KEY esté en el archivo .env y reinicia el servidor.</p>
+    </div>
+  </div>
+</section>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="/static/shim.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script>
+/*<pure>*/
+const S = v => (v == null ? '' : String(v)).trim();
+const A = v => (Array.isArray(v) ? v : []);
+
+/* Evaluador seguro de expresiones en t (sin eval): + - * / ^ ( ), pi, e, sin, cos, ... */
+const FN1 = {sin:Math.sin,cos:Math.cos,tan:Math.tan,asin:Math.asin,acos:Math.acos,atan:Math.atan,exp:Math.exp,ln:Math.log,log:Math.log,sqrt:Math.sqrt,abs:Math.abs,sinh:Math.sinh,cosh:Math.cosh,tanh:Math.tanh};
+function compileExpr(src){
+  const s = String(src).replace(/\*\*/g,'^').replace(/\s+/g,'');
+  if(!s || s.length > 400) throw new Error('expresión vacía o muy larga');
+  let i = 0;
+  function parseExpr(){
+    let a = parseTerm();
+    for(;;){
+      const c = s[i];
+      if(c === '+'){ i++; const b = parseTerm(); const l = a; a = t => l(t) + b(t); }
+      else if(c === '-'){ i++; const b = parseTerm(); const l = a; a = t => l(t) - b(t); }
+      else return a;
+    }
+  }
+  function parseTerm(){
+    let a = parseUnary();
+    for(;;){
+      const c = s[i];
+      if(c === '*'){ i++; const b = parseUnary(); const l = a; a = t => l(t) * b(t); }
+      else if(c === '/'){ i++; const b = parseUnary(); const l = a; a = t => l(t) / b(t); }
+      else if(c !== undefined && /[A-Za-z0-9.(]/.test(c)){ const b = parseUnary(); const l = a; a = t => l(t) * b(t); }
+      else return a;
+    }
+  }
+  function parseUnary(){
+    if(s[i] === '-'){ i++; const a = parseUnary(); return t => -a(t); }
+    if(s[i] === '+'){ i++; return parseUnary(); }
+    return parsePower();
+  }
+  function parsePower(){
+    const base = parseAtom();
+    if(s[i] === '^'){ i++; const ex = parseUnary(); return t => Math.pow(base(t), ex(t)); }
+    return base;
+  }
+  function parseAtom(){
+    const c = s[i];
+    if(c === '('){
+      i++; const a = parseExpr();
+      if(s[i] !== ')') throw new Error('falta )');
+      i++; return a;
+    }
+    const m = /^(\d+\.?\d*|\.\d+)(e[+-]?\d+)?/i.exec(s.slice(i));
+    if(m){ i += m[0].length; const v = parseFloat(m[0]); return () => v; }
+    const id = /^[A-Za-z_][A-Za-z_0-9]*/.exec(s.slice(i));
+    if(id){
+      const name = id[0].toLowerCase(); i += id[0].length;
+      if(s[i] === '('){
+        const f = FN1[name];
+        if(!f) throw new Error('función no permitida: ' + name);
+        i++; const a = parseExpr();
+        if(s[i] !== ')') throw new Error('falta )');
+        i++; return t => f(a(t));
+      }
+      if(name === 't') return t => t;
+      if(name === 'pi') return () => Math.PI;
+      if(name === 'e') return () => Math.E;
+      throw new Error('símbolo no permitido: ' + name);
+    }
+    throw new Error('expresión inválida');
+  }
+  const ast = parseExpr();
+  if(i !== s.length) throw new Error('sobran caracteres');
+  return ast;
+}
+
+/* Texto seguro para PDF (fuentes estándar: Latin-1) */
+const PDF_REPL = {
+  '⁰':'^0','⁴':'^4','⁵':'^5','⁶':'^6','⁷':'^7','⁸':'^8','⁹':'^9','⁻':'^-','⁺':'^+','⁽':'^(','⁾':')','ⁿ':'^n',
+  '₀':'_0','₁':'_1','₂':'_2','₃':'_3','₄':'_4','₅':'_5','₆':'_6','₇':'_7','₈':'_8','₉':'_9','₋':'_-','₊':'_+','₍':'_(','₎':')',
+  'ₐ':'_a','ₑ':'_e','ₒ':'_o','ₓ':'_x','ₕ':'_h','ₖ':'_k','ₗ':'_l','ₘ':'_m','ₙ':'_n','ₚ':'_p','ₛ':'_s','ₜ':'_t','ᵢ':'_i','ᵣ':'_r','ᵤ':'_u','ᵥ':'_v','ᵧ':'_y','ⱼ':'_j',
+  'α':'alfa','β':'beta','γ':'gamma','δ':'delta','Δ':'Delta','∆':'Delta','ε':'epsilon','ζ':'zeta','η':'eta','θ':'theta','Θ':'Theta','ι':'iota','κ':'kappa','λ':'lambda','Λ':'Lambda','μ':'µ','ν':'nu','ξ':'xi','π':'pi','Π':'Pi','ρ':'rho','σ':'sigma','Σ':'Sigma','τ':'tau','υ':'upsilon','φ':'phi','ϕ':'phi','Φ':'Phi','χ':'chi','ψ':'psi','Ψ':'Psi','ω':'omega','Ω':'Ohm','Γ':'Gamma',
+  '−':'-','–':'-','—':'-','‒':'-','…':'...','“':'"','”':'"','„':'"','‘':"'",'’':"'",'′':"'",'″':'"','•':'-',
+  '≈':'~','≃':'~','≅':'~','≠':'!=','≤':'<=','≥':'>=','≪':'<<','≫':'>>','→':'->','←':'<-','↔':'<->','⇒':'=>','⇔':'<=>','↑':'^','↓':'v',
+  '∞':'inf','√':'sqrt','∑':'sum','∫':'int','∂':'d','∇':'nabla','∝':'~','∠':'angulo ','⊥':'perp.','∥':'||','∈':'en','ℏ':'hbar','ħ':'hbar','ℓ':'l',
+  ' ':' ',' ':' ',' ':' ',' ':' ',' ':' ','​':'','﻿':''
+};
+function pdfSafe(str){
+  const s = String(str == null ? '' : str).normalize('NFC').replace(/[̀-ͯ⃐-⃿]/g,'');
+  let out = '';
+  for(const ch of s){
+    const m = PDF_REPL[ch];
+    if(m !== undefined){ out += m; continue; }
+    const c = ch.codePointAt(0);
+    if(c === 9 || c === 10 || (c >= 32 && c <= 126) || (c >= 0xA0 && c <= 0xFF)) out += ch;
+    else out += '?';
+  }
+  return out;
+}
+
+function parseRange(str, n){
+  const s = String(str || '').trim();
+  if(!s) return null;
+  const set = new Set();
+  for(const part of s.split(',')){
+    const m = /^\s*(\d+)\s*(?:-\s*(\d+))?\s*$/.exec(part);
+    if(!m) return null;
+    const a = +m[1], b = m[2] ? +m[2] : a;
+    for(let k = Math.min(a,b); k <= Math.max(a,b); k++) if(k >= 1 && k <= n) set.add(k);
+  }
+  return [...set].sort((x,y) => x - y);
+}
+
+function niceTicks(a, b, n){
+  const span = b - a;
+  const raw = span / n;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f = raw / mag;
+  const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag;
+  const ticks = [];
+  for(let v = Math.ceil(a / step) * step; v <= b + step * 1e-6; v += step) ticks.push(+v.toPrecision(12));
+  return {ticks, step};
+}
+function fmtTick(v, step){
+  const dec = Math.min(6, Math.max(0, -Math.floor(Math.log10(step) + 1e-9)));
+  return v.toFixed(dec);
+}
+
+const PY_RE = /(#[^\n]*)|("""[\s\S]*?"""|'''[\s\S]*?'''|f?"(?:\\.|[^"\\\n])*"|f?'(?:\\.|[^'\\\n])*')|(\b(?:def|class|import|from|as|return|if|elif|else|for|while|in|not|and|or|is|None|True|False|lambda|with|try|except|finally|raise|pass|break|continue|global|yield|assert)\b)|(\b\d+(?:\.\d+)?(?:e[+-]?\d+)?\b)/g;
+function hlPython(code){
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let out = '', last = 0, m;
+  PY_RE.lastIndex = 0;
+  while((m = PY_RE.exec(code))){
+    out += esc(code.slice(last, m.index));
+    const t = esc(m[0]);
+    const cls = m[1] ? 'c' : m[2] ? 's' : m[3] ? 'k' : 'n';
+    out += '<span class="' + cls + '">' + t + '</span>';
+    last = PY_RE.lastIndex;
+    if(m[0].length === 0) PY_RE.lastIndex++;
+  }
+  return out + esc(code.slice(last)) + '\n';
+}
+
+function parseOutput(text){
+  const t = String(text || '');
+  let js = null, cut = false;
+  let m = /<<<JSON\s*([\s\S]*?)\s*JSON>>>/.exec(t);
+  if(m) js = m[1];
+  else { m = /<<<JSON\s*([\s\S]*)$/.exec(t); if(m){ js = m[1]; cut = true; } }
+  let obj = null;
+  const tryParse = str => { try { return JSON.parse(str); } catch(e) { return null; } };
+  if(js != null){
+    js = js.replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'').trim();
+    obj = tryParse(js);
+    if(!obj){ const a = js.indexOf('{'), b = js.lastIndexOf('}'); if(a >= 0 && b > a) obj = tryParse(js.slice(a, b + 1)); }
+  } else {
+    const a = t.indexOf('{'), b = t.lastIndexOf('}');
+    if(a >= 0 && b > a) obj = tryParse(t.slice(a, b + 1));
+  }
+  let py = '';
+  const p = /<<<PYTHON\s*([\s\S]*?)\s*(?:PYTHON>>>|$)/.exec(t);
+  if(p) py = p[1].replace(/^```(?:python|py)?\s*\n?/i,'').replace(/\n?```\s*$/,'').trim();
+  const pyCut = /<<<PYTHON/.test(t) && !/PYTHON>>>/.test(t);
+  return {obj, py, truncated: cut || pyCut};
+}
+/*</pure>*/
+
+(function(){
+'use strict';
+
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+function h(tag, props, ...kids){
+  const el = document.createElement(tag);
+  if(props) for(const [k, v] of Object.entries(props)){
+    if(k === 'class') el.className = v;
+    else if(k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if(v === true) el.setAttribute(k, '');
+    else if(v !== false && v != null) el.setAttribute(k, v);
+  }
+  for(const kid of kids.flat()){
+    if(kid == null || kid === false) continue;
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+const reduced = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let toastTimer;
+function notify(msg){
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 4500);
+}
+
+/* ---------------- Ejemplo precargado ---------------- */
+const ENUNCIADO_EJ = 'Un proyectil se lanza desde el suelo con una rapidez de 25 m/s y un ángulo de 40° sobre la horizontal. Ignorando la resistencia del aire, calcula el tiempo de vuelo, el alcance horizontal, la altura máxima y la velocidad con la que llega al suelo.';
+const EJEMPLO = {
+  valido: true, tema: 'Cinemática', subtema: 'Tiro parabólico', tipo: 'Lanzamiento de proyectil desde el suelo', nivel: 'Básico',
+  enunciado: ENUNCIADO_EJ,
+  datos: [
+    {simbolo:'v₀', valor:'25 m/s', descripcion:'rapidez inicial'},
+    {simbolo:'θ', valor:'40°', descripcion:'ángulo de lanzamiento'},
+    {simbolo:'y₀', valor:'0 m', descripcion:'altura inicial'},
+    {simbolo:'g', valor:'9,8 m/s²', descripcion:'aceleración de la gravedad'}
+  ],
+  incognitas: [
+    {simbolo:'t_v', descripcion:'tiempo de vuelo'},
+    {simbolo:'R', descripcion:'alcance horizontal'},
+    {simbolo:'H', descripcion:'altura máxima'},
+    {simbolo:'v_f', descripcion:'velocidad al llegar al suelo'}
+  ],
+  leyes: [
+    {nombre:'MRU en el eje x', formula:'x = v₀ₓ · t'},
+    {nombre:'MRUV en el eje y', formula:'y = y₀ + v₀ᵧ · t − ½ g t²'},
+    {nombre:'Velocidad vertical', formula:'vᵧ = v₀ᵧ − g · t'}
+  ],
+  pasos: [
+    {titulo:'Descomponer la velocidad inicial', explicacion:'El movimiento horizontal y el vertical son independientes, así que se separa v₀ en sus componentes.', calculo:'v₀ₓ = v₀ cos θ = 25 · cos 40° ≈ 19,15 m/s\nv₀ᵧ = v₀ sen θ = 25 · sen 40° ≈ 16,07 m/s'},
+    {titulo:'Tiempo de subida y altura máxima', explicacion:'En el punto más alto la componente vertical de la velocidad vale cero.', calculo:'0 = v₀ᵧ − g · t_s  →  t_s = 16,07 / 9,8 ≈ 1,64 s\nH = v₀ᵧ² / (2g) = 258,2 / 19,6 ≈ 13,18 m'},
+    {titulo:'Tiempo de vuelo', explicacion:'Como sale y llega a la misma altura, la bajada dura lo mismo que la subida.', calculo:'t_v = 2 · t_s = 2 · 1,64 ≈ 3,28 s'},
+    {titulo:'Alcance horizontal', explicacion:'En x no hay aceleración: la distancia es la velocidad horizontal por el tiempo de vuelo.', calculo:'R = v₀ₓ · t_v = 19,15 · 3,28 ≈ 62,81 m'},
+    {titulo:'Velocidad al llegar al suelo', explicacion:'La componente horizontal no cambia; la vertical se calcula con vᵧ = v₀ᵧ − g t.', calculo:'vₓ = 19,15 m/s\nvᵧ = 16,07 − 9,8 · 3,28 ≈ −16,07 m/s\n|v| = √(19,15² + 16,07²) = 25 m/s,  φ = −40°'}
+  ],
+  resultado: 't_v ≈ 3,28 s · R ≈ 62,8 m · H ≈ 13,2 m · v_f = 25 m/s a 40° bajo la horizontal',
+  verificacion: 'Con la fórmula directa R = v₀² sen 2θ / g = 625 · sen 80° / 9,8 ≈ 62,8 m se obtiene el mismo alcance. Las unidades de cada resultado (s, m, m/s) son coherentes.',
+  vista_previa: {titulo:'Trayectoria del proyectil', t_min:0, t_max:3.2795, eje_x:'x (m)', eje_y:'y (m)', curvas:[{nombre:'Trayectoria y(x)', x:'19.151*t', y:'16.07*t-4.9*t^2'}]}
+};
+const PY_EJ = `"""
+FisIA · Tiro parabólico
+Simula un proyectil lanzado con rapidez v0 y ángulo theta.
+
+Uso:        python tiro_parabolico.py
+Requiere:   pip install numpy matplotlib
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+# ---------- Parámetros editables ----------
+v0 = 25.0          # rapidez inicial (m/s)
+theta_deg = 40.0   # ángulo de lanzamiento (grados)
+y0 = 0.0           # altura inicial (m)
+g = 9.8            # aceleración de la gravedad (m/s^2)
+FRAMES = 200       # fotogramas de la animación
+
+# ---------- Física ----------
+theta = np.radians(theta_deg)
+v0x, v0y = v0 * np.cos(theta), v0 * np.sin(theta)
+
+# Tiempo de vuelo: y0 + v0y*t - g*t^2/2 = 0
+t_vuelo = (v0y + np.sqrt(v0y**2 + 2 * g * y0)) / g
+t = np.linspace(0, t_vuelo, FRAMES)
+x = v0x * t
+y = y0 + v0y * t - 0.5 * g * t**2
+vx = np.full_like(t, v0x)
+vy = v0y - g * t
+
+alcance = x[-1]
+h_max = y0 + v0y**2 / (2 * g)
+t_sube = v0y / g
+
+print(f"Tiempo de vuelo : {t_vuelo:.3f} s")
+print(f"Alcance         : {alcance:.2f} m")
+print(f"Altura máxima   : {h_max:.2f} m (en t = {t_sube:.3f} s)")
+print(f"Velocidad final : {np.hypot(vx[-1], vy[-1]):.2f} m/s")
+
+# ---------- Figura ----------
+fig, (ax, axv) = plt.subplots(1, 2, figsize=(12, 5),
+                              gridspec_kw={"width_ratios": [2.2, 1]})
+fig.suptitle(f"Tiro parabólico  ·  v0 = {v0:g} m/s,  θ = {theta_deg:g}°")
+
+# Trayectoria
+ax.plot(x, y, "--", color="0.7", lw=1, label="Trayectoria completa")
+estela, = ax.plot([], [], color="tab:blue", lw=2.5)
+punto, = ax.plot([], [], "o", color="tab:orange", ms=9)
+flecha = ax.quiver([x[0]], [y[0]], [vx[0]], [vy[0]], angles="xy",
+                   scale_units="xy", scale=3, color="tab:red", width=0.004)
+texto = ax.text(0.02, 0.95, "", transform=ax.transAxes, va="top", family="monospace")
+ax.axhline(0, color="k", lw=1)
+ax.set_xlim(-2, alcance * 1.05)
+ax.set_ylim(-1, h_max * 1.5)
+ax.set_aspect("equal", adjustable="box")
+ax.set_xlabel("x (m)")
+ax.set_ylabel("y (m)")
+ax.grid(alpha=0.3)
+ax.legend(loc="upper right")
+
+# Velocidades en el tiempo
+axv.plot(t, vx, label="vx (m/s)")
+axv.plot(t, vy, label="vy (m/s)")
+cursor = axv.axvline(0, color="k", lw=1, ls=":")
+axv.set_xlabel("t (s)")
+axv.set_ylabel("velocidad (m/s)")
+axv.grid(alpha=0.3)
+axv.legend()
+
+def actualizar(i):
+    estela.set_data(x[: i + 1], y[: i + 1])
+    punto.set_data([x[i]], [y[i]])
+    flecha.set_offsets([[x[i], y[i]]])
+    flecha.set_UVC([vx[i]], [vy[i]])
+    cursor.set_xdata([t[i], t[i]])
+    texto.set_text(f"t = {t[i]:.2f} s\\nx = {x[i]:.1f} m\\ny = {y[i]:.1f} m")
+    return estela, punto, flecha, cursor, texto
+
+ani = FuncAnimation(fig, actualizar, frames=len(t), interval=20,
+                    blit=False, repeat=True)
+# ani.save("tiro_parabolico.gif", writer="pillow", fps=30)   # descomenta para guardar un GIF
+plt.tight_layout()
+plt.show()
+`;
+const SUG_EJ = ['¿Qué ángulo da el mayor alcance?', '¿Y si lanzo desde 10 m de altura?', 'Dame un ejercicio parecido para practicar'];
+const EJEMPLOS_ENT = [
+  {n:'Tiro parabólico', t:ENUNCIADO_EJ},
+  {n:'Plano inclinado', t:'Un bloque de 5 kg se desliza por un plano inclinado de 30° con coeficiente de fricción cinética 0,2. Calcula su aceleración y la rapidez que alcanza tras recorrer 4 m partiendo del reposo.'},
+  {n:'Circuito RC', t:'Un capacitor de 100 µF se carga a través de una resistencia de 2 kΩ conectada a una fuente de 12 V. Determina la constante de tiempo y el voltaje del capacitor a los 0,5 s.'},
+  {n:'Campo eléctrico', t:'Dos cargas puntuales de +3 µC y −3 µC están separadas 0,4 m. Calcula el campo eléctrico en el punto medio entre ellas y representa el campo.'},
+  {n:'Masa-resorte', t:'Un oscilador masa-resorte con m = 0,5 kg y k = 200 N/m se suelta desde x = 5 cm. Halla el periodo, la velocidad máxima y la posición en t = 0,3 s.'}
+];
+
+/* ---------------- Estado ---------------- */
+const state = {
+  mode:'texto', result:null, python:'', pythonOrig:'', isExample:true, running:false, ctl:null,
+  sample:null, downloads:null, limits:null, img:null, pdf:null, chat:[], chatBusy:false, simShown:false,
+  task:'resolver', txt:{}, problem:null, cool:0, entered:false, ctxOn:true, tutorChat:[], tutorBusy:false, tImg:null, tutorKey:'__', lastProj:'', voz:false
+};
+
+/* ---------------- Pestañas ---------------- */
+function setupTabs(list, onChange){
+  const tabs = $$('[role=tab]', list);
+  const key = t => t.dataset.tab || t.dataset.mode;
+  function select(tab, focus){
+    tabs.forEach(t => {
+      const on = t === tab;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      const p = document.getElementById(t.getAttribute('aria-controls'));
+      if(p) p.hidden = !on;
+    });
+    if(focus) tab.focus();
+    if(onChange) onChange(key(tab));
+  }
+  tabs.forEach(t => {
+    t.addEventListener('click', () => select(t));
+    t.addEventListener('keydown', e => {
+      const i = tabs.indexOf(t); let n = null;
+      if(e.key === 'ArrowRight') n = tabs[(i + 1) % tabs.length];
+      if(e.key === 'ArrowLeft') n = tabs[(i - 1 + tabs.length) % tabs.length];
+      if(n){ e.preventDefault(); select(n, true); }
+    });
+  });
+  return { select: name => { const t = tabs.find(x => key(x) === name); if(t) select(t); } };
+}
+
+/* ---------------- Normalización del resultado ---------------- */
+function normPreview(p){
+  if(!p || typeof p !== 'object') return null;
+  const tmin = Number(p.t_min), tmax = Number(p.t_max);
+  if(!isFinite(tmin) || !isFinite(tmax) || tmax <= tmin) return null;
+  const curves = [];
+  for(const c of A(p.curvas).slice(0, 3)){
+    try{
+      const fx = compileExpr(S(c && c.x) || 't');
+      const fy = compileExpr(S(c && c.y));
+      curves.push({name: S(c.nombre) || 'curva', fx, fy});
+    }catch(e){ /* expresión descartada */ }
+  }
+  if(!curves.length) return null;
+  return {titulo: S(p.titulo), tmin, tmax, ejeX: S(p.eje_x) || 'x', ejeY: S(p.eje_y) || 'y', curves};
+}
+function normalize(o){
+  const rows = (v, keys) => A(v).map(d => {
+    if(d && typeof d === 'object') return Object.fromEntries(keys.map(k => [k, S(d[k])]));
+    return Object.fromEntries(keys.map((k, i) => [k, i === keys.length - 1 ? S(d) : '']));
+  });
+  return {
+    valido: o.valido !== false, mensaje: S(o.mensaje),
+    tema: S(o.tema) || 'Física', subtema: S(o.subtema), tipo: S(o.tipo), nivel: S(o.nivel),
+    enunciado: S(o.enunciado),
+    datos: rows(o.datos, ['simbolo','valor','descripcion']),
+    incognitas: rows(o.incognitas, ['simbolo','descripcion']),
+    leyes: rows(o.leyes, ['nombre','formula']),
+    pasos: rows(o.pasos, ['titulo','explicacion','calculo']),
+    resultado: S(o.resultado), verificacion: S(o.verificacion),
+    vista: normPreview(o.vista_previa)
+  };
+}
+
+/* ---------------- Render de resultados ---------------- */
+function renderResumen(r){
+  const root = $('#p-resumen'); root.replaceChildren();
+  if(r.enunciado) root.append(h('p', {class:'enun'}, r.enunciado));
+  const cols = h('div', {class:'cols'});
+  if(r.datos.length) cols.append(h('div', {class:'blk'}, h('h3', null, 'Datos'),
+    h('div', {class:'tbl'}, h('table', {class:'datos'}, h('tbody', null,
+      r.datos.map(d => h('tr', null, h('td', {class:'sym'}, d.simbolo), h('td', {class:'val'}, d.valor), h('td', null, d.descripcion))))))));
+  if(r.incognitas.length) cols.append(h('div', {class:'blk'}, h('h3', null, 'Incógnitas'),
+    h('div', {class:'tbl'}, h('table', {class:'datos'}, h('tbody', null,
+      r.incognitas.map(d => h('tr', null, h('td', {class:'sym'}, d.simbolo), h('td', null, d.descripcion))))))));
+  if(cols.children.length) root.append(cols);
+  if(r.leyes.length) root.append(h('div', {class:'blk'}, h('h3', null, 'Leyes y fórmulas aplicadas'),
+    h('div', {class:'leyes'}, r.leyes.map(l => h('div', {class:'ley'}, h('span', {class:'ley-n'}, l.nombre), h('code', null, l.formula))))));
+  if(r.resultado) root.append(h('div', {class:'resultado'}, h('h3', null, 'Resultado'), h('p', null, r.resultado)));
+}
+function renderPasos(r){
+  const root = $('#p-pasos'); root.replaceChildren();
+  root.append(h('ol', {class:'pasos'}, r.pasos.map((p, i) => h('li', {class:'paso'},
+    h('span', {class:'n'}, String(i + 1)),
+    h('div', null, h('h3', null, p.titulo), p.explicacion ? h('p', null, p.explicacion) : null, p.calculo ? h('div', {class:'calc'}, p.calculo) : null)))));
+  if(r.verificacion) root.append(h('div', {class:'verif'}, h('h3', null, 'Verificación'), h('p', null, r.verificacion)));
+}
+const STD = new Set(['math','random','sys','os','time','itertools','collections','dataclasses','typing','functools','statistics','cmath','fractions','decimal','json','csv','datetime','pathlib','argparse','warnings','__future__']);
+function pipPackages(code){
+  const mods = new Set(); const map = {PIL:'pillow', cv2:'opencv-python', sklearn:'scikit-learn'};
+  for(const m of code.matchAll(/^\s*(?:import|from)\s+([A-Za-z_][A-Za-z0-9_]*)/gm)) if(!STD.has(m[1])) mods.add(map[m[1]] || m[1]);
+  return [...mods];
+}
+async function generarCodigo(r){
+  if(!state.sample) return;
+  state.codeBusy = true; state.codeFor = r; renderCodigo();
+  const prompt = 'Eres FisIA, experto en programación científica en Python. Respondes en español.\n\nEscribe el programa para este ejercicio de física ya resuelto:\n' + JSON.stringify(compact(r)) + '\n\n' + REGLAS_CODIGO + '\n\nDevuelve SOLO el código Python, sin Markdown ni explicaciones.';
+  try{
+    const res = await state.sample(prompt, {cache:false, modelTier:'default', kind:'code'});
+    if(state.codeFor !== r) return;
+    const py = String(res.text || '').replace(/^\s*```(?:python|py)?\s*\n?/i,'').replace(/\n?```\s*$/,'').trim();
+    if(py){ state.python = py; state.pythonOrig = py; }
+  }catch(e){
+    if(state.codeFor === r) notify('No se pudo generar el código: ' + ((e && e.message) || 'intenta de nuevo') + ' Puedes reintentar en la pestaña Código Python.');
+  }finally{
+    if(state.codeFor === r){ state.codeBusy = false; renderCodigo(); }
+  }
+}
+function renderCodigo(){
+  const has = !!state.python;
+  $('#code-box').hidden = !has; $('#code-vacio').hidden = has;
+  if(!has){
+    const v = $('#code-vacio');
+    v.replaceChildren(state.codeBusy ? 'Generando el código Python… Mientras tanto ya puedes revisar el resumen, los pasos y la simulación.' : 'Todavía no hay código para este ejercicio.');
+    if(!state.codeBusy && state.result && !state.isExample) v.append(' ', h('button', {type:'button', class:'btn small primary', onclick: () => generarCodigo(state.result)}, 'Generar código'));
+    return;
+  }
+  $('#code-ta').value = state.python;
+  syncCode();
+}
+function syncCode(){
+  const code = $('#code-ta').value;
+  $('#code-hl').innerHTML = hlPython(code);
+  $('#code-info').textContent = code.split('\n').length + ' líneas · Python';
+  const pk = pipPackages(code);
+  const run = $('#code-run'); run.replaceChildren();
+  run.append(h('b', null, '$ '), 'pip install ' + (pk.length ? pk.join(' ') : 'numpy matplotlib'), '\n');
+  run.append(h('b', null, '$ '), /\bmanim\b/.test(code) ? 'manim -pql fisia_simulacion.py' : 'python fisia_simulacion.py');
+}
+function renderAll(){
+  const r = state.result;
+  $('#badge-ejemplo').hidden = !state.isExample;
+  $('#lab-tema').textContent = [r.tema, r.subtema].filter(Boolean).join(' · ');
+  $('#lab-tipo').textContent = [r.tipo, r.nivel ? 'Nivel ' + r.nivel.toLowerCase() : ''].filter(Boolean).join(' · ');
+  renderResumen(r); renderPasos(r); renderCodigo(); simSetup(r.vista); resetChat();
+}
+
+/* ---------------- Vista previa interactiva (canvas) ---------------- */
+const Sim = {p:null, pts:[], b:null, prog:0, playing:false, last:0, speed:1, raf:0, w:0, h:0, dpr:1, ctx:null, cv:null, N:360};
+const COLORS = ['--accent','--signal','--ok'];
+function simSetup(p){
+  Sim.p = p; setSimPlaying(false);
+  const has = !!p;
+  $('#sim-box').hidden = !has; $('#sim-vacio').hidden = has;
+  if(!has) return;
+  Sim.pts = p.curves.map(c => {
+    const xs = [], ys = [];
+    for(let k = 0; k <= Sim.N; k++){ const t = p.tmin + (p.tmax - p.tmin) * k / Sim.N; xs.push(c.fx(t)); ys.push(c.fy(t)); }
+    return {xs, ys};
+  });
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for(const c of Sim.pts) for(let k = 0; k < c.xs.length; k++){
+    const x = c.xs[k], y = c.ys[k];
+    if(isFinite(x) && isFinite(y)){ x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  }
+  if(!isFinite(x0)){ simSetup(null); return; }
+  if(x1 - x0 < 1e-9){ x0 -= 1; x1 += 1; }
+  if(y1 - y0 < 1e-9){ y0 -= 1; y1 += 1; }
+  if(x0 > 0 && x0 < (x1 - x0) * 0.6) x0 = 0;
+  if(y0 > 0 && y0 < (y1 - y0) * 0.6) y0 = 0;
+  if(x1 < 0 && -x1 < (x1 - x0) * 0.6) x1 = 0;
+  if(y1 < 0 && -y1 < (y1 - y0) * 0.6) y1 = 0;
+  const px = (x1 - x0) * 0.05, py = (y1 - y0) * 0.08;
+  Sim.b = {x0: x0 - (x0 === 0 ? 0 : px), x1: x1 + (x1 === 0 ? 0 : px), y0: y0 - (y0 === 0 ? 0 : py), y1: y1 + (y1 === 0 ? 0 : py)};
+  $('#sim-titulo').textContent = p.titulo || 'Vista previa';
+  const lg = $('#sim-leyenda'); lg.replaceChildren();
+  p.curves.forEach((c, i) => lg.append(h('span', null, h('i', {style:'background:var(' + COLORS[i] + ')'}), c.name)));
+  Sim.prog = reduced() ? 1 : 0; state.simShown = false;
+  simResize(); simSync();
+}
+function simResize(){
+  const wrap = $('#sim-wrap'); if(!wrap) return;
+  const w = wrap.clientWidth, hh = wrap.clientHeight;
+  if(!w || !hh) return;
+  Sim.cv = $('#sim-canvas'); Sim.dpr = window.devicePixelRatio || 1;
+  Sim.cv.width = Math.round(w * Sim.dpr); Sim.cv.height = Math.round(hh * Sim.dpr);
+  Sim.ctx = Sim.cv.getContext('2d'); Sim.w = w; Sim.h = hh;
+  simDraw();
+}
+function simDraw(){
+  const p = Sim.p, ctx = Sim.ctx;
+  if(!p || !ctx || !Sim.w || !Sim.b) return;
+  const cs = getComputedStyle(document.documentElement);
+  const col = n => cs.getPropertyValue(n).trim();
+  const L = 58, R = 18, T = 14, B = 46, pw = Sim.w - L - R, ph = Sim.h - T - B;
+  if(pw < 40 || ph < 40) return;
+  const {x0, x1, y0, y1} = Sim.b;
+  const sx = v => L + (v - x0) / (x1 - x0) * pw, sy = v => T + ph - (v - y0) / (y1 - y0) * ph;
+  ctx.setTransform(Sim.dpr, 0, 0, Sim.dpr, 0, 0);
+  ctx.clearRect(0, 0, Sim.w, Sim.h);
+  ctx.font = '11px "IBM Plex Mono", ui-monospace, monospace';
+  const lineC = col('--line'), mut = col('--muted'), fg = col('--fg');
+  const tx = niceTicks(x0, x1, Math.max(3, Math.floor(pw / 90))), ty = niceTicks(y0, y1, Math.max(3, Math.floor(ph / 55)));
+  ctx.lineWidth = 1; ctx.strokeStyle = lineC; ctx.fillStyle = mut;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for(const v of tx.ticks){ const x = Math.round(sx(v)) + .5; ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, T + ph); ctx.stroke(); ctx.fillText(fmtTick(v, tx.step), x, T + ph + 6); }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for(const v of ty.ticks){ const y = Math.round(sy(v)) + .5; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke(); ctx.fillText(fmtTick(v, ty.step), L - 8, y); }
+  ctx.strokeStyle = mut; ctx.lineWidth = 1.4;
+  if(x0 <= 0 && x1 >= 0){ const x = Math.round(sx(0)) + .5; ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, T + ph); ctx.stroke(); }
+  if(y0 <= 0 && y1 >= 0){ const y = Math.round(sy(0)) + .5; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke(); }
+  ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText(p.ejeX, L + pw / 2, Sim.h - 8);
+  ctx.save(); ctx.translate(14, T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(p.ejeY, 0, 0); ctx.restore();
+
+  const t = p.tmin + Sim.prog * (p.tmax - p.tmin);
+  const k = Math.floor(Sim.prog * Sim.N);
+  ctx.save(); ctx.beginPath(); ctx.rect(L, T, pw, ph); ctx.clip();
+  p.curves.forEach((c, i) => {
+    const pts = Sim.pts[i], color = col(COLORS[i]);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.setLineDash([5, 5]); ctx.strokeStyle = lineC; ctx.lineWidth = 1.6; ctx.beginPath();
+    let pen = false;
+    for(let j = 0; j <= Sim.N; j++){ const x = pts.xs[j], y = pts.ys[j]; if(!isFinite(x) || !isFinite(y)){ pen = false; continue; } if(pen) ctx.lineTo(sx(x), sy(y)); else { ctx.moveTo(sx(x), sy(y)); pen = true; } }
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = color; ctx.lineWidth = 2.6; ctx.beginPath(); pen = false;
+    for(let j = 0; j <= k; j++){ const x = pts.xs[j], y = pts.ys[j]; if(!isFinite(x) || !isFinite(y)){ pen = false; continue; } if(pen) ctx.lineTo(sx(x), sy(y)); else { ctx.moveTo(sx(x), sy(y)); pen = true; } }
+    const cx = c.fx(t), cy = c.fy(t);
+    if(isFinite(cx) && isFinite(cy)){
+      ctx.lineTo(sx(cx), sy(cy)); ctx.stroke();
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(sx(cx), sy(cy), 6, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = col('--panel-2'); ctx.lineWidth = 2; ctx.stroke();
+    } else ctx.stroke();
+  });
+  ctx.restore();
+}
+function simSync(){
+  const p = Sim.p; if(!p) return;
+  $('#sim-prog').value = Math.round(Sim.prog * 1000);
+  const t = p.tmin + Sim.prog * (p.tmax - p.tmin);
+  const f = v => (isFinite(v) ? (+v.toPrecision(4)).toString() : '—');
+  $('#sim-lectura').textContent = 't = ' + f(t) + ' · ' + p.curves.map(c => c.name + ': (' + f(c.fx(t)) + ', ' + f(c.fy(t)) + ')').join(' · ');
+  simDraw();
+}
+function simFrame(ts){
+  if(!Sim.playing) return;
+  const dt = Math.min(0.1, (ts - Sim.last) / 1000); Sim.last = ts;
+  const span = Math.min(10, Math.max(3, Sim.p.tmax - Sim.p.tmin));
+  Sim.prog += dt * Sim.speed / span;
+  if(Sim.prog >= 1){ Sim.prog = 1; setSimPlaying(false); }
+  simSync();
+  if(Sim.playing) Sim.raf = requestAnimationFrame(simFrame);
+}
+function setSimPlaying(on){
+  Sim.playing = on;
+  const b = $('#sim-play'); if(b) b.textContent = on ? 'Pausa' : (Sim.prog >= 1 ? 'Repetir' : 'Reproducir');
+  cancelAnimationFrame(Sim.raf);
+  if(on){ if(Sim.prog >= 1) Sim.prog = 0; Sim.last = performance.now(); Sim.raf = requestAnimationFrame(simFrame); }
+}
+
+/* ---------------- Chat de preguntas ---------------- */
+function resetChat(){
+  state.chat = []; $('#chat-log').replaceChildren();
+  const sug = $('#chat-sug'); sug.replaceChildren();
+  const list = state.isExample ? SUG_EJ : ['Explícame el paso 2 más sencillo', '¿Qué pasa si cambio un dato?', 'Dame un ejercicio parecido para practicar'];
+  list.forEach(q => sug.append(h('button', {type:'button', class:'chip', onclick: () => sendChat(q)}, q)));
+}
+function addBubble(role, text){
+  const b = h('div', {class:'bubble ' + role}, text);
+  const log = $('#chat-log'); log.append(b); log.scrollTop = log.scrollHeight; return b;
+}
+function compact(r){
+  return {tema:r.tema, subtema:r.subtema, enunciado:r.enunciado, datos:r.datos, incognitas:r.incognitas, leyes:r.leyes, pasos:r.pasos, resultado:r.resultado};
+}
+async function sendChat(text){
+  text = S(text);
+  if(!text || state.chatBusy) return;
+  if(!state.sample){ notify('Las preguntas necesitan la IA: revisa tu clave en el archivo .env.'); return; }
+  if(coolBlock()) return;
+  state.chatBusy = true; $('#chat-form').classList.add('busy'); $('#chat-send').disabled = true; $('#chat-input').value = '';
+  addBubble('user', text);
+  const bub = addBubble('ai', 'Pensando…');
+  state.chat.push({role:'user', content:text});
+  const rules = 'Eres FisIA, tutor de física universitaria. Responde en español, claro y breve (máximo 180 palabras salvo que pidan más), con símbolos Unicode para las fórmulas, sin Markdown ni LaTeX. Este es el ejercicio ya resuelto (JSON):\n' + JSON.stringify(compact(state.result)).slice(0, 8000) + '\nResponde las preguntas del estudiante sobre este ejercicio. Si pide una variante, recalcula con los nuevos datos y da el resultado numérico con unidades.';
+  const turns = [{role:'user', content:rules}, ...state.chat.slice(-8)];
+  try{
+    const res = await state.sample(turns, {cache:false, kind:'chat', onText: ({text:t}) => { bub.textContent = t; const log = $('#chat-log'); log.scrollTop = log.scrollHeight; }});
+    bub.textContent = res.text; state.chat.push({role:'assistant', content:res.text});
+  }catch(e){
+    if(e && e.code === 'rate_limited') cooldown(e.retry_after);
+    bub.textContent = errCopy(e) || 'No pude responder esta vez.';
+    if(e && e.text) bub.textContent = e.text + '\n\n(' + (errCopy(e) || 'respuesta interrumpida') + ')';
+  }finally{
+    state.chatBusy = false; $('#chat-send').disabled = false; $('#chat-form').classList.remove('busy');
+  }
+}
+
+/* ---------------- Entrada: imagen y PDF ---------------- */
+function setImage(file){
+  if(!file) return;
+  if(!/^image\//.test(file.type)){ notify('Ese archivo no es una imagen.'); return; }
+  if(state.img) URL.revokeObjectURL(state.img.url);
+  state.img = {blob:file, url:URL.createObjectURL(file), name:file.name || 'foto'};
+  $('#thumb-img-el').src = state.img.url; $('#thumb-img-name').textContent = state.img.name + ' · ' + Math.round(file.size / 1024) + ' KB';
+  $('#thumb-img').hidden = false;
+}
+function clearImage(){
+  if(state.img) URL.revokeObjectURL(state.img.url);
+  state.img = null; $('#thumb-img').hidden = true; $('#img-file').value = ''; $('#cam-file').value = '';
+}
+async function setPdf(file){
+  if(!file) return;
+  if(!window.pdfjsLib){ notify('No pude cargar el lector de PDF en este visor. Pega el texto del ejercicio o súbelo como imagen.'); return; }
+  const info = $('#pdf-info'); info.hidden = false;
+  $('#pdf-name').textContent = file.name; $('#pdf-detalle').textContent = 'Leyendo el PDF…';
+  try{
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const doc = await pdfjsLib.getDocument({data: buf}).promise;
+    const n = doc.numPages, texts = [];
+    for(let p = 1; p <= Math.min(n, 60); p++){
+      const pg = await doc.getPage(p); const tc = await pg.getTextContent();
+      texts.push(tc.items.map(it => it.str + (it.hasEOL ? '\n' : ' ')).join('').replace(/[ \t]+\n/g, '\n').trim());
+      $('#pdf-detalle').textContent = 'Leyendo página ' + p + ' de ' + Math.min(n, 60) + '…';
+    }
+    state.pdf = {name:file.name, doc, n, texts};
+    const chars = texts.join('').replace(/\s/g, '').length;
+    $('#pdf-detalle').textContent = n + (n === 1 ? ' página' : ' páginas') + (chars > 120 ? ' · texto detectado' : ' · parece un escaneo: se enviará como imagen');
+  }catch(e){
+    state.pdf = null; info.hidden = true; $('#pdf-file').value = '';
+    notify('No pude leer ese PDF. Prueba con otro archivo o sube una foto del ejercicio.');
+  }
+}
+function clearPdf(){ state.pdf = null; $('#pdf-info').hidden = true; $('#pdf-file').value = ''; $('#pdf-pages').value = ''; }
+function wireDrop(zone, onFile){
+  ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('over'); }));
+  zone.addEventListener('drop', e => { const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if(f) onFile(f); });
+}
+async function pdfPageImages(pages, max){
+  const out = [];
+  for(const p of pages.slice(0, max)){
+    const pg = await state.pdf.doc.getPage(p);
+    const vp = pg.getViewport({scale:1.6});
+    const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+    await pg.render({canvasContext: cv.getContext('2d'), viewport: vp}).promise;
+    out.push(await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.85)));
+  }
+  return out.filter(Boolean);
+}
+
+/* ---------------- Motor de resolución ---------------- */
+const REGLAS = `Eres FisIA, un tutor experto en física universitaria y programación científica en Python. Respondes siempre en español.
+
+TAREA
+Recibes un problema de física (texto, imagen o PDF). Debes: (1) identificar el tema y el tipo de ejercicio, (2) resumir datos, incógnitas y leyes aplicadas, (3) resolverlo paso a paso de forma pedagógica, (4) escribir un programa Python ejecutable que visualice el fenómeno, y (5) dar una vista previa paramétrica para dibujar la gráfica en una página web.
+Si la entrada trae varios ejercicios, resuelve solo el que indique la nota del estudiante; si no hay nota, el primero.
+Si la entrada no contiene un problema de física, responde con "valido": false y explica en "mensaje" qué falta; en ese caso omite la sección PYTHON.
+
+FORMATO DE RESPUESTA (obligatorio; nada fuera de estas dos secciones):
+
+<<<JSON
+{
+  "valido": true,
+  "mensaje": "",
+  "tema": "Cinemática",
+  "subtema": "Tiro parabólico",
+  "tipo": "Lanzamiento de proyectil desde el suelo",
+  "nivel": "Básico | Intermedio | Avanzado",
+  "enunciado": "Enunciado completo, transcrito o reformulado",
+  "datos": [{"simbolo": "v₀", "valor": "25 m/s", "descripcion": "rapidez inicial"}],
+  "incognitas": [{"simbolo": "R", "descripcion": "alcance horizontal"}],
+  "leyes": [{"nombre": "MRU en x", "formula": "x = v₀ₓ · t"}],
+  "pasos": [{"titulo": "Descomponer la velocidad", "explicacion": "1 a 3 frases didácticas", "calculo": "v₀ₓ = v₀ cos θ = 25 · cos 40° ≈ 19,15 m/s\\nv₀ᵧ = …"}],
+  "resultado": "Respuestas finales con unidades",
+  "verificacion": "Comprobación dimensional y de sentido físico",
+  "vista_previa": {"titulo": "Trayectoria", "t_min": 0, "t_max": 3.28, "eje_x": "x (m)", "eje_y": "y (m)", "curvas": [{"nombre": "y(x)", "x": "19.15*t", "y": "16.07*t-4.9*t^2"}]}
+}
+JSON>>>
+<<<PYTHON
+(código Python completo, sin bloques de Markdown)
+PYTHON>>>
+
+REGLAS DEL JSON
+- Texto plano en todos los campos: sin Markdown ni LaTeX. Usa símbolos Unicode para la matemática (v₀, θ, Δ, ², ·, √, ≈, →, ½). Los saltos de línea dentro de un texto van como \\n. Escapa bien las comillas.
+- Entre 3 y 8 pasos, concisos. Cada cálculo incluye sustitución numérica y unidades. Cifras significativas coherentes.
+- "vista_previa": curvas paramétricas en la variable t con números ya calculados (sin otras variables). Operadores permitidos: + - * / ^ y paréntesis; constantes pi y e; funciones sin cos tan asin acos atan exp ln sqrt abs. Escribe siempre el * de la multiplicación y usa punto decimal. Hasta 3 curvas; "x" omitido significa "t". Para un fenómeno por tramos usa el tramo principal. Si no hay gráfica en función de un parámetro, usa "vista_previa": null.
+
+REGLAS DEL CÓDIGO PYTHON
+- Programa completo que corre con "python archivo.py". Usa numpy y matplotlib por defecto; usa plotly, pygame o manim solo si son claramente mejores para este problema.
+- Parámetros editables al inicio con comentarios en español, que reproduzcan los datos del problema. Imprime con print los resultados numéricos principales. No uses input().
+- Ejes con unidades, título, leyenda y cuadrícula. Sin usetex; el mathtext de matplotlib ($...$) sí vale.
+- Si hay movimiento o evolución temporal (cinemática, MRU, MRUV, tiro parabólico, oscilaciones, carga de un capacitor, ondas): animación fluida con matplotlib.animation.FuncAnimation (interval de 20 a 30 ms, 150 fotogramas o más), con estela y vectores (quiver o annotate) donde ayuden. Deja comentada la línea para guardar un GIF con el writer "pillow".
+- Si el problema es estático (vectores, equilibrio, campos): diagrama vectorial claro con flechas y componentes; para campos, quiver o streamplot; para circuitos, gráficas de V(t) e I(t).
+- Termina con plt.show().`;
+
+/* La resolución se pide SIN código (respuesta corta y rápida); el código Python se genera aparte y se muestra al llegar. */
+const REGLAS_CODIGO = REGLAS.slice(REGLAS.indexOf('REGLAS DEL CÓDIGO PYTHON'));
+const REGLAS_SOLO_JSON = REGLAS.slice(0, REGLAS.indexOf('REGLAS DEL CÓDIGO PYTHON'))
+  .replace(', (4) escribir un programa Python ejecutable que visualice el fenómeno, y (5) dar una vista previa', ' y (4) dar una vista previa')
+  .replace('nada fuera de estas dos secciones', 'nada fuera de esta sección')
+  .replace(/<<<PYTHON\n[\s\S]*?\nPYTHON>>>\n?/, '')
+  .replace(/[;,]? en ese caso omite la sección PYTHON/, '')
+  .trim();
+
+function buildPrompt(kind, body, nota){
+  let p = (state.task === 'corregir' ? REGLAS_CORREGIR : REGLAS_SOLO_JSON) + '\n\nENTRADA DEL ESTUDIANTE (' + kind + '):\n' + body;
+  if(nota) p += '\n\nNOTA DEL ESTUDIANTE: ' + nota;
+  return p;
+}
+async function collectInput(){
+  const nota = S($('#nota').value);
+  if(state.mode === 'texto' || state.mode === 'audio'){
+    const t = S($(state.mode === 'audio' ? '#audio-texto' : '#enunciado').value);
+    if(t.length < 8) throw new Error('Escribe el enunciado del problema, aunque sea una frase.');
+    return {prompt: buildPrompt('texto', t, ''), images: []};
+  }
+  const imgOk = !!(state.limits && state.limits.images);
+  if(state.mode === 'imagen'){
+    if(!state.img) throw new Error('Sube o toma una foto del ejercicio.');
+    if(!imgOk) throw new Error('Este visor no permite enviar imágenes a la IA. Escribe el enunciado en la pestaña Texto.');
+    const types = state.limits.images.mediaTypes || [];
+    if(types.length && !types.includes(state.img.blob.type)) throw new Error('Ese formato de imagen no es compatible. Usa JPG, PNG o WebP.');
+    return {prompt: buildPrompt('imagen', state.task === 'corregir' ? 'La resolución del estudiante (y el enunciado, si aparece) está en la imagen adjunta.' : 'El enunciado está en la imagen adjunta.', nota), images: [state.img.blob]};
+  }
+  if(!state.pdf) throw new Error('Sube un PDF con el ejercicio.');
+  const sel = parseRange($('#pdf-pages').value, state.pdf.n);
+  if(S($('#pdf-pages').value) && (!sel || !sel.length)) throw new Error('El rango de páginas no es válido. Ejemplo: 2-3 o 1,4.');
+  const pages = sel || Array.from({length: Math.min(state.pdf.n, 12)}, (_, i) => i + 1);
+  let text = pages.filter(p => p <= state.pdf.texts.length).map(p => '[Página ' + p + ']\n' + state.pdf.texts[p - 1]).join('\n\n');
+  if(text.replace(/\s/g, '').length >= 120){
+    if(text.length > 28000) text = text.slice(0, 28000) + '\n[…texto recortado]';
+    return {prompt: buildPrompt('texto extraído de un PDF', text, nota), images: []};
+  }
+  if(!imgOk) throw new Error('El PDF parece un escaneo y este visor no permite enviar imágenes. Pega el texto del ejercicio.');
+  const max = Math.min(state.limits.images.maxCount || 3, 4);
+  const imgs = await pdfPageImages(pages, max);
+  if(!imgs.length) throw new Error('No pude convertir el PDF en imágenes. Sube una foto del ejercicio.');
+  return {prompt: buildPrompt('páginas de un PDF escaneado', 'Las páginas del PDF están en las imágenes adjuntas (' + imgs.length + ').', nota), images: imgs};
+}
+function errCopy(e){
+  switch(e && e.code){
+    case 'not_granted': return 'Necesitas permitir que esta página use Claude para resolver problemas.';
+    case 'sampling_disabled': return 'Claude no está disponible para tu cuenta u organización.';
+    case 'rate_limited': return 'Gemini pide una pausa' + (e.retry_after ? ' de unos ' + e.retry_after + ' s' : '') + ' para no agotar tu cupo gratuito. Inténtalo de nuevo en un momento.';
+    case 'session_expired': return 'Tu sesión venció. Vuelve a iniciar sesión en Claude.';
+    case 'image_rejected': return 'No pude leer la imagen. Usa un JPG, PNG o WebP de menos de 20 MB.';
+    case 'images_unavailable': return 'Este visor no permite enviar imágenes. Escribe el enunciado.';
+    case 'prompt_too_large': return 'El contenido es demasiado largo. Indica las páginas del ejercicio.';
+    case 'refused': return 'Claude no pudo procesar esta entrada. Reformula el enunciado.';
+    case 'empty_completion': return 'La IA no devolvió nada. Prueba con un enunciado más claro.';
+    case 'api_key': return (e && e.message) || 'La clave de Gemini no es válida. Revisa GEMINI_API_KEY en el archivo .env.';
+    case 'cancelled': return '';
+    default: return (e && e.message) ? 'Error de la IA: ' + e.message : 'Ocurrió un error al contactar a la IA. Intenta de nuevo.';
+  }
+}
+function showError(msg){ const e = $('#error'); e.textContent = msg; e.hidden = !msg; }
+function setPhase(i){ $$('#fases li').forEach((li, k) => { li.className = k < i ? 'done' : k === i ? 'active' : ''; }); }
+function setRunning(on){
+  state.running = on;
+  $('#btn-resolver').hidden = on; $('#btn-stop').hidden = !on;
+  $('#fases').hidden = !on && !$('#fases').dataset.keep; $('#consola').hidden = !on;
+  $('#logo').classList.toggle('busy', on);
+}
+async function resolver(){
+  if(state.running) return;
+  showError('');
+  if(coolBlock()) return;
+  if(!state.sample){ showError('La IA no está activa: revisa GEMINI_API_KEY en el archivo .env y reinicia el servidor.'); return; }
+  let input;
+  setRunning(true); setPhase(0); $('#fases').dataset.keep = '1'; $('#consola').textContent = 'Leyendo la entrada…';
+  try{ input = await collectInput(); }
+  catch(e){ setRunning(false); showError(e.message || 'No pude leer la entrada.'); return; }
+  setPhase(1);
+  const ctl = new AbortController(); state.ctl = ctl;
+  try{
+    const res = await state.sample(input.prompt, {
+      signal: ctl.signal, cache:false, modelTier: $('#precision').value, kind: state.task === 'corregir' ? 'check' : 'solve',
+      images: input.images.length ? input.images : undefined,
+      onText: ({text}) => {
+        const c = $('#consola'); c.textContent = text.split('\n').slice(-9).join('\n');
+        if(state.task === 'corregir'){ if(text.includes('"resultado_correcto"')) setPhase(3); else if(text.includes('"revision"')) setPhase(2); else if(text.includes('"tema"')) setPhase(1); }
+        else if(text.includes('"vista_previa"') || text.includes('"verificacion"')) setPhase(3); else if(text.includes('"pasos"')) setPhase(2); else if(text.includes('"tema"')) setPhase(1);
+      }
+    });
+    const out = parseOutput(res.text);
+    if(!out.obj){ showError('La respuesta de la IA no tuvo el formato esperado. Pulsa de nuevo «Resolver con FisIA».'); return; }
+    if(state.task === 'corregir'){
+      const c = normCorr(out.obj);
+      if(!c.valido){ showError(c.mensaje || 'No encontré un ejercicio de física resuelto en esa entrada.'); return; }
+      if(!c.revision.length){ showError('La IA no devolvió la revisión. Intenta de nuevo.'); return; }
+      state.corr = c; state.problem = {src:'corregir', data: compactCorr(c)}; renderCorr(c);
+      if(res.cached) notify('Respuesta guardada: no gastó cupo.');
+      if(window.matchMedia('(max-width: 960px)').matches) $('#corr').scrollIntoView({behavior: reduced() ? 'auto' : 'smooth', block:'start'});
+      return;
+    }
+    const r = normalize(out.obj);
+    if(!r.valido){ showError(r.mensaje || 'No encontré un problema de física en esa entrada.'); return; }
+    if(!r.pasos.length){ showError('La IA no devolvió los pasos de la resolución. Intenta de nuevo.'); return; }
+    state.result = r; state.python = ''; state.pythonOrig = ''; state.codeBusy = false; state.isExample = false; state.problem = {src:'resolver', data: compact(r)};
+    if(res.cached) notify('Respuesta guardada: no gastó cupo.');
+    renderAll();
+    generarCodigo(r);
+    outTabs.select('resumen');
+    if(out.truncated) notify('La respuesta se cortó antes de terminar; revisa el código o vuelve a resolver.');
+    if(window.matchMedia('(max-width: 960px)').matches) $('.lab').scrollIntoView({behavior: reduced() ? 'auto' : 'smooth', block:'start'});
+  }catch(e){
+    if(e && e.code === 'rate_limited') cooldown(e.retry_after);
+    const msg = errCopy(e); if(msg) showError(msg);
+  }finally{
+    state.ctl = null; setRunning(false);
+  }
+}
+
+/* ---------------- Reporte PDF ---------------- */
+function buildPdf(r, meta){
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'a4', compress:true});
+  const W = 210, H = 297, M = 18, CW = W - 2 * M, FOOT = H - 16;
+  const NAVY = [14,22,48], BLUE = [10,86,214], ORANGE = [184,64,10], GRAY = [85,97,127], INK = [20,26,46], PALE = [237,242,251], SAND = [255,235,221];
+  const fecha = new Date().toLocaleDateString('es-ES', {day:'numeric', month:'long', year:'numeric'});
+  let y = 0;
+  const setF = (font, style, size, color) => { doc.setFont(font, style); doc.setFontSize(size); doc.setTextColor(color[0], color[1], color[2]); };
+  function header(first){
+    if(first){
+      doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]); doc.rect(0, 0, W, 34, 'F');
+      setF('helvetica', 'bold', 20, [255,255,255]); doc.text('FisIA', M, 17);
+      setF('helvetica', 'normal', 10, [170,200,255]); doc.text(pdfSafe('Reporte de ejercicio de física · resolución paso a paso'), M, 25);
+      doc.text(pdfSafe(fecha), W - M, 17, {align:'right'});
+      y = 45;
+    } else {
+      doc.setDrawColor(BLUE[0], BLUE[1], BLUE[2]); doc.setLineWidth(.4); doc.line(M, 14, W - M, 14);
+      setF('helvetica', 'normal', 8, GRAY); doc.text('FisIA · ' + pdfSafe(r.tema), M, 11);
+      y = 23;
+    }
+  }
+  const need = hh => { if(y + hh > FOOT){ doc.addPage(); header(false); } };
+  function para(text, o){
+    o = Object.assign({size:10.5, font:'helvetica', style:'normal', color:INK, indent:0, gap:1.8, bg:null}, o || {});
+    const lh = o.size * 0.3528 * 1.45;
+    setF(o.font, o.style, o.size, o.color);
+    const width = CW - o.indent - (o.bg ? 4 : 0);
+    const lines = pdfSafe(text).split('\n').flatMap(par => doc.splitTextToSize(par || ' ', width));
+    for(const ln of lines){
+      need(lh);
+      if(o.bg){ doc.setFillColor(o.bg[0], o.bg[1], o.bg[2]); doc.rect(M + o.indent, y - o.size * 0.3528 * 0.98, CW - o.indent, lh, 'F'); }
+      setF(o.font, o.style, o.size, o.color);
+      doc.text(ln, M + o.indent + (o.bg ? 2 : 0), y);
+      y += lh;
+    }
+    y += o.gap;
+  }
+  function sec(title){
+    need(18); y += 4;
+    setF('helvetica', 'bold', 10.5, BLUE); doc.text(pdfSafe(title).toUpperCase(), M, y);
+    doc.setDrawColor(BLUE[0], BLUE[1], BLUE[2]); doc.setLineWidth(.35); doc.line(M, y + 1.7, W - M, y + 1.7);
+    y += 7.5;
+  }
+  header(true);
+  para([r.tema, r.subtema].filter(Boolean).join(' · '), {size:16, style:'bold', color:NAVY, gap:1});
+  if(r.tipo) para(r.tipo, {size:10, color:GRAY, gap:2});
+  const who = [meta.alumno ? 'Estudiante: ' + meta.alumno : '', meta.curso ? 'Asignatura: ' + meta.curso : ''].filter(Boolean).join('     ');
+  if(who) para(who, {size:10, gap:2});
+  if(r.enunciado){ sec('Enunciado'); para(r.enunciado); }
+  if(r.datos.length){ sec('Datos'); r.datos.forEach(d => para('- ' + (d.simbolo ? d.simbolo + ' = ' : '') + d.valor + (d.descripcion ? '   (' + d.descripcion + ')' : ''), {font:'courier', size:9.5, gap:.8})); }
+  if(r.incognitas.length){ sec('Incognitas'.replace('Incognitas', 'Incógnitas')); r.incognitas.forEach(d => para('- ' + (d.simbolo ? d.simbolo + ': ' : '') + d.descripcion, {font:'courier', size:9.5, gap:.8})); }
+  if(r.leyes.length){ sec('Leyes y fórmulas aplicadas'); r.leyes.forEach(l => { para(l.nombre, {style:'bold', size:10, gap:.4}); para(l.formula, {font:'courier', size:10, bg:PALE, gap:2.4}); }); }
+  if(r.pasos.length){
+    sec('Resolución paso a paso');
+    r.pasos.forEach((p, i) => {
+      need(22);
+      para('Paso ' + (i + 1) + '. ' + p.titulo, {style:'bold', size:11, color:NAVY, gap:.8});
+      if(p.explicacion) para(p.explicacion, {gap:1.2});
+      if(p.calculo) para(p.calculo, {font:'courier', size:9.5, bg:PALE, gap:3.4});
+    });
+  }
+  if(r.resultado){ sec('Resultado final'); para(r.resultado, {font:'courier', style:'bold', size:10.5, color:ORANGE, bg:SAND, gap:2}); }
+  if(r.verificacion){ sec('Verificación'); para(r.verificacion); }
+  const n = doc.getNumberOfPages();
+  for(let i = 1; i <= n; i++){
+    doc.setPage(i);
+    setF('helvetica', 'normal', 8, GRAY);
+    doc.text(pdfSafe('Generado con FisIA con ayuda de IA · revisa los cálculos antes de entregar'), M, H - 9);
+    doc.text('Página ' + i + ' de ' + n, W - M, H - 9, {align:'right'});
+  }
+  doc.setProperties({title: pdfSafe('FisIA - ' + r.tema + (r.subtema ? ' - ' + r.subtema : '')), author: pdfSafe(meta.alumno || 'FisIA'), creator:'FisIA'});
+  return doc.output('blob');
+}
+const slug = s => pdfSafe(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'ejercicio';
+async function saveFile(filename, data){
+  if(!state.downloads){ notify('La descarga no está disponible en este visor.'); return false; }
+  try{ await state.downloads.save({filename, data}); notify('Archivo guardado: ' + filename); return true; }
+  catch(e){
+    if(e && e.code === 'declined') return false;
+    notify(e && e.code === 'rate_limited' ? 'Espera un momento y vuelve a intentarlo.' : 'No pude guardar el archivo en este visor.');
+    return false;
+  }
+}
+async function descargarPdf(){
+  if(!window.jspdf){ notify('No pude cargar el generador de PDF en este visor.'); return; }
+  const btn = $('#btn-pdf'); btn.disabled = true;
+  try{
+    const blob = buildPdf(state.result, {alumno:S($('#alumno').value), curso:S($('#curso').value)});
+    await saveFile('Fisia_' + slug(state.result.subtema || state.result.tema) + '.pdf', blob);
+  }catch(e){ notify('No pude generar el PDF de este ejercicio.'); }
+  finally{ btn.disabled = false; }
+}
+
+/* ---------------- Audio (se transcribe con Gemini desde el servidor local) ---------------- */
+async function transcribirAudio(file){
+  if(!file) return;
+  const st = $('#audio-estado');
+  st.textContent = 'Transcribiendo el audio con Gemini…';
+  $('#audio-texto').value = '';
+  const fd = new FormData(); fd.append('audio', file, file.name);
+  try{
+    const r = await fetch('/api/transcribir', {method:'POST', body:fd});
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.message || 'No se pudo transcribir el audio.');
+    $('#audio-texto').value = j.texto;
+    st.textContent = 'Transcripción lista. Revísala y corrige lo que haga falta antes de resolver.';
+  }catch(e){
+    st.textContent = '';
+    notify(e && e.message ? e.message : 'No se pudo transcribir el audio.');
+  }
+}
+
+/* ---------------- Capacidades y arranque ---------------- */
+function setAI(ok, text){
+  const s = $('#estado-ia'); s.className = 'status ' + (ok ? 'ok' : 'off'); $('#estado-texto').textContent = text;
+  $('#btn-resolver').disabled = !ok;
+  const n = $('#nota-ia'); n.hidden = ok;
+  if(!ok) n.textContent = 'La IA no está activa: revisa que GEMINI_API_KEY esté en el archivo .env y reinicia el servidor.';
+  $('#chat-aviso').hidden = ok; $('#chat-send').disabled = !ok; $('#chat-input').disabled = !ok;
+  $('#tutor-aviso').hidden = ok; $('#tutor-send').disabled = !ok || state.tutorBusy; $('#tutor-input').disabled = !ok;
+}
+async function initCaps(){
+  setAI(false, 'Conectando con la IA…'); $('#estado-ia').className = 'status'; $('#nota-ia').hidden = true;
+  const c = window.claude;
+  if(!c || !c.use){ setAI(false, 'IA no disponible aquí'); return; }
+  try{ state.downloads = await c.use('downloads'); }catch(e){}
+  try{ state.sample = await c.use('sample'); }catch(e){ state.sample = null; }
+  if(state.sample){
+    try{ state.limits = await state.sample.limits(); }catch(e){}
+    setAI(true, 'IA lista');
+  } else setAI(false, 'IA no disponible aquí');
+}
+
+/* ---------------- Átomo animado (portada y menú) ---------------- */
+const Atom = (() => {
+  const cv = $('#atom'), ctx = cv.getContext('2d');
+  const TAU = Math.PI * 2;
+  let W = 0, H = 0, dpr = 1, raf = 0, mode = 'off', last = 0, time = 0, boostV = 1, lod = 1, slow = 0;
+  let rotY = 0, px = 0, py = 0, tx = 0, ty = 0, wasSmall = null;
+  let parts = [], nuc = [], stars = [], eth = [0, 0, 0];
+  const ORB = [
+    {phi: 0, rgb: [61, 232, 255], dir: 1},
+    {phi: TAU / 3, rgb: [139, 92, 255], dir: -1},
+    {phi: 2 * TAU / 3, rgb: [96, 165, 255], dir: 1}
+  ];
+  ORB.forEach(o => { o.css = 'rgb(' + o.rgb.join(',') + ')'; o.cp = Math.cos(o.phi); o.sp = Math.sin(o.phi); });
+  const small = () => innerWidth < 700 || Math.min(innerWidth, innerHeight) < 520;
+  const gauss = () => { let s = 0; for(let i = 0; i < 4; i++) s += Math.random(); return (s - 2) / 0.58; };
+  function sprite(r, g, b){
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.16, 'rgba(' + r + ',' + g + ',' + b + ',.95)');
+    gr.addColorStop(.5, 'rgba(' + r + ',' + g + ',' + b + ',.22)'); gr.addColorStop(1, 'rgba(' + r + ',' + g + ',' + b + ',0)');
+    x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return c;
+  }
+  const sprites = ORB.map(o => sprite(...o.rgb)), sNuc = sprite(255, 170, 70);
+  function build(){
+    const sm = small(); wasSmall = sm;
+    const per = sm ? 300 : 640;
+    parts = [];
+    ORB.forEach((o, k) => {
+      for(let i = 0; i < per; i++) parts.push({k, th: Math.random() * TAU, a: 1 + gauss() * 0.04, z: gauss() * 0.04, sp: o.dir * (0.22 + Math.random() * 0.18), sz: Math.random() < 0.1 ? 2.2 : 1.2, al: 0.3 + Math.random() * 0.7});
+    });
+    nuc = [];
+    for(let i = 0; i < (sm ? 90 : 190); i++){
+      const u = Math.random() * 2 - 1, t = Math.random() * TAU, r = 0.04 + Math.random() * 0.09, q = Math.sqrt(1 - u * u);
+      nuc.push({x: r * q * Math.cos(t), y: r * u, z: r * q * Math.sin(t), c: Math.random() < .5 ? 'rgb(255,190,90)' : Math.random() < .5 ? 'rgb(255,255,255)' : 'rgb(255,120,90)'});
+    }
+    stars = [];
+    for(let i = 0; i < (sm ? 160 : 340); i++){
+      const u = Math.random() * 2 - 1, t = Math.random() * TAU, r = 1.5 + Math.random() * 2.2, q = Math.sqrt(1 - u * u);
+      stars.push({x: r * q * Math.cos(t), y: r * u, z: r * q * Math.sin(t), tw: 0.6 + Math.random() * 2, ph: Math.random() * TAU});
+    }
+  }
+  function resize(){
+    W = innerWidth; H = innerHeight; dpr = Math.min(window.devicePixelRatio || 1, small() ? 1.5 : 2);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    if(wasSmall !== small()) build();
+    if(mode !== 'off' && (!raf)) draw();
+  }
+  function draw(){
+    const ctxd = ctx, F = 3.2;
+    const R = Math.min(W * 0.4, H * 0.3) * (mode === 'dim' ? 1.25 : 1);
+    const cx = W / 2, cy = H * 0.5;
+    ctxd.setTransform(dpr, 0, 0, dpr, 0, 0); ctxd.clearRect(0, 0, W, H);
+    ctxd.globalCompositeOperation = 'lighter';
+    const tilt = 1.05 + py * 0.5, ct = Math.cos(tilt), st = Math.sin(tilt);
+    const ry = rotY + px * 0.9, cr = Math.cos(ry), sr = Math.sin(ry);
+    const proj = (x, y, z) => { // gira el grupo: inclinación en X y giro en Y
+      const y2 = y * ct - z * st, z2 = y * st + z * ct;
+      const x3 = x * cr + z2 * sr, z3 = -x * sr + z2 * cr;
+      const s = F / (F + z3); return [cx + x3 * R * s, cy + y2 * R * s, s];
+    };
+    // estrellas lejanas
+    for(const s of stars){
+      const [X, Y, sc] = proj(s.x * 0.5, s.y * 0.5, s.z * 0.5);
+      if(X < -4 || X > W + 4 || Y < -4 || Y > H + 4) continue;
+      ctxd.globalAlpha = (0.25 + 0.5 * Math.abs(Math.sin(time * s.tw + s.ph))) * Math.min(1, sc);
+      ctxd.fillStyle = '#cfe9ff'; ctxd.fillRect(X, Y, 1.3, 1.3);
+    }
+    // guías de las órbitas
+    ctxd.lineWidth = 1;
+    ORB.forEach(o => {
+      ctxd.beginPath();
+      for(let i = 0; i <= 72; i++){
+        const t = i / 72 * TAU, x = Math.cos(t), y = 0.42 * Math.sin(t);
+        const [X, Y] = proj(x * o.cp - y * o.sp, x * o.sp + y * o.cp, 0);
+        i ? ctxd.lineTo(X, Y) : ctxd.moveTo(X, Y);
+      }
+      ctxd.globalAlpha = 0.16; ctxd.strokeStyle = o.css; ctxd.stroke();
+    });
+    // polvo de las órbitas
+    const step = lod;
+    for(let i = 0; i < parts.length; i += step){
+      const p = parts[i], o = ORB[p.k];
+      const x = Math.cos(p.th) * p.a, y = 0.42 * Math.sin(p.th) * p.a;
+      const [X, Y, sc] = proj(x * o.cp - y * o.sp, x * o.sp + y * o.cp, p.z);
+      ctxd.globalAlpha = p.al * Math.max(0.15, Math.min(1, (sc - 0.7) * 1.8));
+      ctxd.fillStyle = o.css; const sz = p.sz * sc * (step > 1 ? 1.3 : 1); ctxd.fillRect(X, Y, sz, sz);
+    }
+    // electrones con estela
+    ORB.forEach((o, k) => {
+      for(let j = 26; j >= 0; j--){
+        const t = eth[k] - o.dir * j * 0.05, x = Math.cos(t), y = 0.42 * Math.sin(t);
+        const [X, Y, sc] = proj(x * o.cp - y * o.sp, x * o.sp + y * o.cp, 0);
+        const sz = (j === 0 ? 30 : 10 * (1 - j / 30)) * sc * (R / 260 + 0.55);
+        ctxd.globalAlpha = j === 0 ? 1 : 0.5 * (1 - j / 27);
+        ctxd.drawImage(sprites[k], X - sz / 2, Y - sz / 2, sz, sz);
+      }
+    });
+    // núcleo
+    const pulse = 1 + 0.1 * Math.sin(time * 3), gs = R * 0.62 * pulse;
+    ctxd.globalAlpha = 0.9; ctxd.drawImage(sNuc, cx - gs / 2, cy - gs / 2, gs, gs);
+    for(const n of nuc){
+      const a = time * 0.8, ca = Math.cos(a), sa = Math.sin(a);
+      const [X, Y, sc] = proj(n.x * ca - n.z * sa, n.y, n.x * sa + n.z * ca);
+      ctxd.globalAlpha = 0.85; ctxd.fillStyle = n.c; ctxd.fillRect(X, Y, 2 * sc, 2 * sc);
+    }
+    ctxd.globalCompositeOperation = 'source-over'; ctxd.globalAlpha = 1;
+  }
+  function frame(now){
+    raf = 0;
+    if(mode === 'off' || document.hidden) return;
+    const dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now;
+    // si el equipo va justo, se dibuja la mitad del polvo
+    if(dt > 0.026){ if(++slow > 40 && lod === 1) lod = 2; } else if(slow > 0) slow--;
+    boostV += (1 - boostV) * Math.min(1, dt * 1.6);
+    time += dt; rotY += dt * 0.22 * boostV;
+    px += (tx - px) * 0.05; py += (ty - py) * 0.05;
+    for(const p of parts) p.th += p.sp * dt * boostV;
+    ORB.forEach((o, k) => { eth[k] += o.dir * dt * (1.15 + k * 0.2) * boostV; });
+    draw();
+    raf = requestAnimationFrame(frame);
+  }
+  function run(){
+    if(raf || mode === 'off' || document.hidden) return;
+    if(reduced()){ time = 2; draw(); return; }
+    last = performance.now(); raf = requestAnimationFrame(frame);
+  }
+  window.addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', run);
+  window.addEventListener('pointermove', e => { tx = e.clientX / (W || 1) - 0.5; ty = e.clientY / (H || 1) - 0.5; }, {passive: true});
+  build(); resize();
+  return {
+    mode(m){ mode = m; if(m === 'off'){ if(raf) cancelAnimationFrame(raf); raf = 0; } else { resize(); run(); } },
+    boost(){ boostV = 7; }
+  };
+})();
+
+/* ---------------- Pausa entre consultas (cuida el cupo gratuito) ---------------- */
+function cooldown(sec){ state.cool = Date.now() + Math.max(3, Math.min(90, sec || 20)) * 1000; }
+function coolLeft(){ return Math.max(0, Math.ceil((state.cool - Date.now()) / 1000)); }
+function coolBlock(){
+  const c = coolLeft();
+  if(c){ notify('Gemini pidió una pausa. Espera ' + c + ' s para no agotar tu cupo gratuito.'); return true; }
+  return false;
+}
+
+/* ---------------- Tareas: resolver / corregir ---------------- */
+const TASKS = {
+  resolver: {title:'Resolver un ejercicio', entrada:'Entrada del problema', btn:'Resolver con FisIA', lbl:'Enunciado',
+    ph:'Escribe o pega aquí el problema de física…', fases:['Leer entrada','Analizar tema','Resolver','Generar código'],
+    nota:'¿Qué ejercicio resolver? (opcional)', notaPh:'Ej.: problema 3, o resolver solo el inciso b'},
+  corregir: {title:'Corregir un ejercicio', entrada:'Ejercicio a corregir', btn:'Corregir con FisIA', lbl:'Enunciado y tu resolución',
+    ph:'Pega aquí el enunciado y TU resolución completa (pasos, fórmulas y resultado)…', fases:['Leer entrada','Resolver aparte','Comparar pasos','Informe'],
+    nota:'Indicaciones (opcional)', notaPh:'Ej.: revisa solo el inciso b'}
+};
+function setTask(task){
+  task = TASKS[task] ? task : 'resolver';
+  const ta = $('#enunciado');
+  state.txt[state.task] = ta.value;
+  state.task = task;
+  const T = TASKS[task];
+  ta.value = state.txt[task] != null ? state.txt[task] : (task === 'resolver' ? ENUNCIADO_EJ : '');
+  ta.placeholder = T.ph;
+  $('#h-entrada').textContent = T.entrada; $('#lbl-enun').textContent = T.lbl; $('#nav-task').textContent = T.title;
+  $('#btn-resolver-t').textContent = T.btn;
+  $('label[for=nota]').textContent = T.nota; $('#nota').placeholder = T.notaPh;
+  $$('#fases li').forEach((li, i) => { li.textContent = T.fases[i]; });
+  $('#ejemplos').hidden = task !== 'resolver';
+  $('#lab').hidden = task !== 'resolver'; $('#corr').hidden = task !== 'corregir';
+  $('#nota-wrap').hidden = state.mode === 'texto' && task === 'resolver';
+  showError('');
+  if(task === 'resolver') requestAnimationFrame(simResize);
+}
+
+/* ---------------- Navegación entre vistas ---------------- */
+let entering = false;
+function applyView(view, task){
+  const prev = document.body.dataset.view;
+  document.body.dataset.view = view;
+  const el = $('#view-' + view);
+  if(prev !== view && el && view !== 'intro'){ el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
+  if(view === 'work') setTask(task);
+  Atom.mode(view === 'intro' ? 'full' : view === 'hub' ? 'dim' : 'off');
+  if(view !== 'tutor') stopSpeak(); else openTutor();
+  if(view !== 'work') setSimPlaying(false);
+  window.scrollTo(0, 0);
+}
+function route(){
+  const hsh = location.hash.replace(/^#\/?/, '');
+  let view = 'intro', task = null;
+  if(state.entered && hsh){
+    if(hsh === 'resolver' || hsh === 'corregir'){ view = 'work'; task = hsh; }
+    else if(hsh === 'tutor') view = 'tutor';
+    else view = 'hub';
+  }
+  applyView(view, task);
+}
+function enterApp(){
+  if(entering || document.body.dataset.view !== 'intro') return;
+  entering = true; Atom.boost();
+  const v = $('#view-intro'); v.classList.add('out');
+  setTimeout(() => {
+    entering = false; state.entered = true; v.classList.remove('out');
+    if(location.hash === '#/menu') route(); else location.hash = '#/menu';
+  }, 480);
+}
+
+/* ---------------- Corregir un ejercicio ya hecho ---------------- */
+const REGLAS_CORREGIR = `Eres FisIA, un tutor experto en física universitaria. Respondes siempre en español.
+
+TAREA
+El estudiante te entrega un ejercicio YA RESUELTO por él (enunciado y su resolución, en texto o imagen). Debes: (1) leerlo, (2) resolver el problema por tu cuenta, (3) comparar tu solución con la suya paso a paso, (4) localizar errores (conceptuales, de planteamiento, de cálculo, de unidades o de cifras significativas) y (5) explicar cómo corregirlos. Sé exigente pero motivador: reconoce lo que está bien.
+Si falta el enunciado, dedúcelo de la resolución. Si la entrada no contiene un ejercicio de física resuelto, responde con "valido": false y explica en "mensaje" qué falta.
+
+FORMATO DE RESPUESTA (obligatorio; nada fuera de este bloque):
+
+<<<JSON
+{
+  "valido": true,
+  "mensaje": "",
+  "tema": "Cinemática",
+  "subtema": "Tiro parabólico",
+  "enunciado": "Enunciado completo, transcrito o reformulado",
+  "veredicto": "Correcto | Casi correcto | Con errores | Incorrecto",
+  "nota": 7.5,
+  "resumen": "2 o 3 frases con la valoración general",
+  "revision": [{"paso": "Descomponer la velocidad", "estado": "ok | aviso | error", "comentario": "qué hizo el estudiante y por qué está bien o mal", "correccion": "planteamiento o cálculo correcto (vacío si está bien)"}],
+  "errores": [{"tipo": "Conceptual | Planteamiento | Cálculo | Unidades | Cifras", "descripcion": "explicación breve"}],
+  "resultado_estudiante": "lo que obtuvo el estudiante, con unidades",
+  "resultado_correcto": "respuesta final correcta, con unidades",
+  "consejos": ["recomendación breve para mejorar"]
+}
+JSON>>>
+
+REGLAS
+- Texto plano en todos los campos: sin Markdown ni LaTeX. Usa símbolos Unicode (v₀, θ, Δ, ², ·, √, ≈, →). Los saltos de línea dentro de un texto van como \\n. Escapa bien las comillas.
+- "nota" es un número de 0 a 10. Entre 3 y 9 pasos revisados, en el orden de la resolución del estudiante. Máximo 4 consejos.
+- Si todo está bien, "errores" va vacío y no inventes fallos.`;
+
+function normCorr(o){
+  const A = v => Array.isArray(v) ? v : [];
+  const est = s => { s = S(s).toLowerCase(); return s.startsWith('ok') || s === 'correcto' ? 'ok' : s.startsWith('err') || s === 'incorrecto' ? 'error' : 'aviso'; };
+  const nota = parseFloat(String(o.nota).replace(',', '.'));
+  return {
+    valido: o.valido !== false, mensaje: S(o.mensaje), tema: S(o.tema) || 'Física', subtema: S(o.subtema), enunciado: S(o.enunciado),
+    veredicto: S(o.veredicto) || 'Revisado', nota: Number.isFinite(nota) ? Math.max(0, Math.min(10, nota)) : null, resumen: S(o.resumen),
+    revision: A(o.revision).map(x => ({paso: S(x && x.paso), estado: est(x && x.estado), comentario: S(x && x.comentario), correccion: S(x && x.correccion)})),
+    errores: A(o.errores).map(x => ({tipo: S(x && x.tipo), descripcion: S(x && x.descripcion)})).filter(x => x.descripcion),
+    resultado_estudiante: S(o.resultado_estudiante), resultado_correcto: S(o.resultado_correcto), consejos: A(o.consejos).map(S).filter(Boolean)
+  };
+}
+function compactCorr(r){
+  return {tipo:'ejercicio corregido', tema:r.tema, subtema:r.subtema, enunciado:r.enunciado, veredicto:r.veredicto, resumen:r.resumen,
+    revision:r.revision.map(x => ({paso:x.paso, estado:x.estado, comentario:x.comentario, correccion:x.correccion})), errores:r.errores, resultado_correcto:r.resultado_correcto};
+}
+function reportText(r){
+  const L = ['FISIA · Corrección: ' + r.tema + (r.subtema ? ' · ' + r.subtema : ''), 'Veredicto: ' + r.veredicto + (r.nota != null ? ' (' + r.nota.toFixed(1) + '/10)' : ''), '', r.resumen, '', 'REVISIÓN PASO A PASO'];
+  r.revision.forEach((x, i) => { L.push((i + 1) + '. [' + x.estado.toUpperCase() + '] ' + x.paso + ': ' + x.comentario + (x.correccion ? '\n   Corrección: ' + x.correccion : '')); });
+  if(r.errores.length){ L.push('', 'ERRORES'); r.errores.forEach(e => L.push('- ' + (e.tipo ? e.tipo + ': ' : '') + e.descripcion)); }
+  L.push('', 'Resultado del estudiante: ' + (r.resultado_estudiante || '—'), 'Resultado correcto: ' + (r.resultado_correcto || '—'));
+  if(r.consejos.length){ L.push('', 'CONSEJOS'); r.consejos.forEach(c => L.push('- ' + c)); }
+  return L.join('\n');
+}
+function renderCorr(r){
+  const body = $('#corr-body'); body.replaceChildren();
+  const n = r.nota, p = n == null ? 0 : n * 10;
+  const tone = r.veredicto.toLowerCase().startsWith('incorrecto') || (n != null && n < 5) ? 'bad' : (n != null && n >= 8) || r.veredicto.toLowerCase() === 'correcto' ? 'ok' : 'warn';
+  const gc = tone === 'ok' ? 'var(--ok)' : tone === 'warn' ? 'var(--signal)' : 'var(--bad)';
+  $('#corr-tag').textContent = r.tema + (r.subtema ? ' · ' + r.subtema : '');
+  body.append(
+    h('div', {class:'verdict'},
+      n == null ? h('span', {class:'vbadge vb-' + tone}, r.veredicto)
+        : h('div', {class:'gauge', style:'--p:' + p + ';--gc:' + gc}, h('div', null, h('b', null, n.toFixed(1)), h('small', null, '/ 10'))),
+      h('div', null, h('span', {class:'vbadge vb-' + tone}, r.veredicto), h('p', {style:'margin-top:8px'}, r.resumen))),
+    r.enunciado ? h('div', {class:'blk'}, h('h3', null, 'Enunciado'), h('p', {class:'enun', style:'margin:0'}, r.enunciado)) : null,
+    h('div', {class:'blk'}, h('h3', null, 'Revisión paso a paso'),
+      h('ol', {class:'rev'}, r.revision.map((x, i) => h('li', {class:'s-' + x.estado},
+        h('span', {class:'st', 'aria-label':x.estado}, x.estado === 'ok' ? '✓' : x.estado === 'error' ? '✕' : '!'),
+        h('div', null, h('h4', null, (i + 1) + '. ' + x.paso), h('p', null, x.comentario), x.correccion ? h('div', {class:'fix'}, x.correccion) : null))))),
+    h('div', {class:'vs'},
+      h('div', null, h('h3', null, 'Tu resultado'), h('p', {style:'font:500 14px var(--font-mono)'}, r.resultado_estudiante || '—')),
+      h('div', {class:'good'}, h('h3', null, 'Resultado correcto'), h('p', {style:'font:500 14px var(--font-mono)'}, r.resultado_correcto || '—'))),
+    r.errores.length ? h('div', {class:'blk'}, h('h3', null, 'Errores detectados'), h('ul', {class:'errs'}, r.errores.map(e => h('li', null, e.tipo ? h('b', null, e.tipo + ': ') : null, e.descripcion)))) : null,
+    r.consejos.length ? h('div', {class:'blk'}, h('h3', null, 'Para mejorar'), h('ul', {class:'errs'}, r.consejos.map(c => h('li', null, c)))) : null,
+    h('div', {class:'corr-actions'},
+      h('button', {type:'button', class:'btn primary', onclick: () => { location.hash = '#/tutor'; }}, 'Que el tutor me guíe en mis errores'),
+      h('button', {type:'button', class:'btn', onclick: async () => { try{ await navigator.clipboard.writeText(reportText(r)); notify('Informe copiado.'); }catch(e){ notify('No pude copiar; selecciona el texto manualmente.'); } }}, 'Copiar informe'),
+      h('button', {type:'button', class:'btn', onclick: () => saveFile('fisia_correccion.txt', reportText(r))}, 'Descargar .txt'))
+  );
+}
+
+/* ---------------- Tutor IA holográfico ---------------- */
+const TUTOR_SYS = `Eres el Tutor IA de FisIA, un asistente virtual académico especializado en física y ciencias exactas. Tu rol es actuar como un profesor interactivo, dinámico y guía (estilo socrático) para estudiantes universitarios. Respondes siempre en español.
+
+DIRECTRICES DE COMPORTAMIENTO:
+1. ENFOQUE SOCRÁTICO: No des la respuesta o el resultado final del problema de inmediato. Guía al estudiante mediante preguntas orientadoras, ayudándole a deducir las fórmulas, identificar los datos dados (variables) y comprender los principios físicos subyacentes (ej. leyes de Newton, conservación de energía, cinemática).
+2. TONO Y PERSONALIDAD: Sé motivador, analítico, claro y cercano. Explícate de forma estructurada, usando notación matemática limpia (con formato LaTeX cuando sea necesario).
+3. ADAPTABILIDAD: Evalúa el nivel de la pregunta del usuario. Si muestra confusión conceptual, simplifica la explicación con analogías físicas cotidianas. Si muestra dominio, profundiza en la deducción matemática o en las implicaciones del modelo físico.
+4. INTERACCIÓN CON EL ENTORNO: Estás integrado en una interfaz que proyecta análisis de física, gráficos y ecuaciones. Cuando expliques un concepto clave, resalta la fórmula principal o el principio de manera que el sistema pueda proyectarlo visualmente en el núcleo holográfico.
+5. CONTEXTO DE LA SESIÓN: Mantén el hilo de la conversación actual sobre el problema de física que el usuario subió (ya sea texto, imagen o audio) y ayúdale a validar tanto sus cálculos como su razonamiento paso a paso hasta llegar a la solución correcta.
+
+FORMATO DE SALIDA (para que la interfaz lo muestre bien):
+- Sé breve: máximo unas 130 palabras por respuesta, salvo que el estudiante pida profundizar. Termina con UNA sola pregunta guía.
+- Escribe la matemática en LaTeX entre signos de dólar: $F = ma$ en línea.
+- Cuando destaques la fórmula o el principio principal del momento, escríbelo una sola vez, en una línea aparte, con el formato [[ expresión en LaTeX ]]. Ejemplo: [[ \\sum \\vec{F} = m\\vec{a} ]]. Usa como máximo uno por respuesta.
+- No uses encabezados Markdown. Puedes usar **negritas** y listas cortas con guiones.`;
+const TUT_SUG = ['No sé por dónde empezar', 'Dame una pista', 'Revisa mi planteamiento', 'Explícamelo con una analogía'];
+
+function tutorContext(){
+  if(!state.ctxOn || !state.problem) return '';
+  return JSON.stringify(state.problem.data).slice(0, 7000);
+}
+function ctxKey(){ return state.ctxOn && state.problem ? state.problem.src + '|' + state.problem.data.tema + '|' + S(state.problem.data.enunciado).slice(0, 60) : ''; }
+
+/* texto con **negritas**, $matemática$ y [[fórmula destacada]] */
+function texEl(tex, display){
+  const el = h(display ? 'div' : 'span', {class:'tex'});
+  if(window.katex){
+    try{ el.innerHTML = katex.renderToString(tex, {throwOnError:false, displayMode:!!display, output:'html', trust:false}); return el; }catch(e){}
+  }
+  el.textContent = tex; el.style.fontFamily = 'var(--font-mono)'; return el;
+}
+function renderRich(el, text, final){
+  if(!final) text = text.replace(/\[\[[^\]]*$/, '');
+  const formulas = [];
+  text = text.replace(/\s*\[\[([\s\S]+?)\]\]\s*/g, (m, f) => { formulas.push(f.trim()); return '\u0001' + (formulas.length - 1) + '\u0001'; });
+  el.replaceChildren();
+  for(const tk of text.split(/(\u0001\d+\u0001|\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\*\*[^*\n]+?\*\*)/)){
+    if(!tk) continue;
+    if(tk[0] === '\u0001'){
+      const f = formulas[parseInt(tk.slice(1), 10)];
+      const box = h('div', {class:'fbox', title:'Proyectar en el núcleo holográfico', onclick: () => projectFormula(f)}); box.append(texEl(f, true)); el.append(box);
+    } else if(tk.startsWith('$$')) el.append(texEl(tk.slice(2, -2), true));
+    else if(tk[0] === '$' && tk.length > 2) el.append(texEl(tk.slice(1, -1), false));
+    else if(tk.startsWith('**') && tk.length > 4) el.append(h('strong', null, tk.slice(2, -2)));
+    else el.append(document.createTextNode(tk));
+  }
+  return formulas;
+}
+function projectFormula(f){
+  if(!f || f === state.lastProj) return;
+  state.lastProj = f;
+  const b = $('#core-body'); b.classList.remove('empty', 'proj'); b.replaceChildren(texEl(f, true));
+  void b.offsetWidth; b.classList.add('proj');
+}
+
+function tScroll(force){
+  const log = $('#tutor-log');
+  if(force || log.scrollHeight - log.scrollTop - log.clientHeight < 140) log.scrollTop = log.scrollHeight;
+}
+function addTBubble(role, text, img){
+  const b = h('div', {class:'bubble ' + role});
+  if(img) b.append(h('img', {src:img.url, alt:'Imagen adjunta', style:'display:block;max-width:180px;border-radius:8px;margin-bottom:6px'}));
+  if(text) b.append(role === 'ai' ? '' : text);
+  $('#tutor-log').append(b); tScroll(true); return b;
+}
+function greet(){
+  const log = $('#tutor-log'); log.replaceChildren();
+  const p = state.ctxOn && state.problem ? state.problem.data : null;
+  const b = addTBubble('ai', '');
+  if(p) renderRich(b, '¡Hola! Soy tu tutor de FisIA. Veo que estás trabajando en **' + p.tema + (p.subtema ? ' · ' + p.subtema : '') + '**. Antes de calcular nada: ¿qué datos te da el problema y qué te piden encontrar?', true);
+  else renderRich(b, '¡Hola! Soy tu tutor de FisIA. Cuéntame qué ejercicio o concepto de física quieres trabajar: puedes escribirlo, adjuntar una foto o subir un audio. Yo te guío con preguntas para que lo resuelvas tú.', true);
+}
+function refreshTutorCtx(){
+  const box = $('#tutor-ctx'), key = ctxKey();
+  box.hidden = !(state.ctxOn && state.problem);
+  if(!box.hidden){
+    const d = state.problem.data;
+    $('#tutor-ctx-t').textContent = d.tema + (d.subtema ? ' · ' + d.subtema : '');
+  }
+  if(key !== state.tutorKey){
+    state.tutorKey = key; state.tutorChat = []; state.lastProj = '';
+    const cb = $('#core-body'); cb.className = 'core-body empty'; cb.textContent = 'Aquí proyectaré la fórmula clave de cada paso.';
+    greet();
+  }
+}
+function openTutor(){
+  const m = $('#motes');
+  if(!m.children.length){
+    for(let i = 0; i < 12; i++){
+      const s = h('i', {class:'mote'}); s.style.cssText = '--x:' + Math.round((Math.random() - .5) * 150) + ';--d:' + (3 + Math.random() * 3).toFixed(1) + 's;--dl:-' + (Math.random() * 5).toFixed(1) + 's'; m.append(s);
+    }
+    const eq = $('#eq'); for(let i = 0; i < 9; i++){ const b = h('i'); b.style.setProperty('--k', i); eq.append(b); }
+    const sug = $('#tutor-sug'); TUT_SUG.forEach(q => sug.append(h('button', {type:'button', class:'chip', onclick: () => sendTutor(q)}, q)));
+  }
+  refreshTutorCtx();
+}
+function setTutorBusy(on){
+  state.tutorBusy = on; $('#tutor-form').classList.toggle('busy', on); $('#tutor-send').disabled = on || !state.sample;
+  if(!speaking()) $('#holo').classList.toggle('speaking', on);
+}
+
+/* voz (opcional) */
+const speaking = () => 'speechSynthesis' in window && speechSynthesis.speaking;
+function plainText(t){
+  return t.replace(/\[\[[\s\S]*?\]\]/g, ' ').replace(/\$\$?([^$]+)\$\$?/g, (m, x) => ' ' + x.replace(/\\[a-zA-Z]+/g, ' ').replace(/[{}^_\\]/g, ' ') + ' ').replace(/\*\*/g, '');
+}
+function stopSpeak(){ if('speechSynthesis' in window) speechSynthesis.cancel(); const hl = $('#holo'); if(hl) hl.classList.remove('speaking'); }
+function speak(t){
+  if(!state.voz || !('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(plainText(t)); u.lang = 'es-ES'; u.rate = 1.03;
+  u.onstart = () => $('#holo').classList.add('speaking'); u.onend = u.onerror = () => $('#holo').classList.remove('speaking');
+  speechSynthesis.speak(u);
+}
+
+/* adjuntos del tutor */
+function setTImg(file){
+  if(!file) return;
+  if(!/^image\//.test(file.type)){ notify('Ese archivo no es una imagen.'); return; }
+  clearTImg(); state.tImg = {blob:file, url:URL.createObjectURL(file)};
+  $('#t-attach').replaceChildren(h('img', {src:state.tImg.url, alt:''}), h('span', null, 'Foto lista para enviar'), h('button', {type:'button', class:'btn small', onclick:clearTImg}, 'Quitar'));
+  $('#t-attach').hidden = false;
+}
+function clearTImg(){
+  if(state.tImg) URL.revokeObjectURL(state.tImg.url);
+  state.tImg = null; $('#t-attach').hidden = true; $('#t-img').value = '';
+}
+async function tutorAudio(file){
+  if(!file) return;
+  if(!state.sample){ notify('La IA no está activa: revisa tu clave en el archivo .env.'); return; }
+  notify('Transcribiendo el audio…');
+  const fd = new FormData(); fd.append('audio', file, file.name);
+  try{
+    const r = await fetch('/api/transcribir', {method:'POST', body:fd}), j = await r.json();
+    if(!r.ok) throw new Error(j.message || 'No se pudo transcribir el audio.');
+    const inp = $('#tutor-input'); inp.value = (inp.value ? inp.value + ' ' : '') + j.texto; inp.focus(); notify('Audio transcrito: revisa el texto y envía.');
+  }catch(e){ notify(e && e.message ? e.message : 'No se pudo transcribir el audio.'); }
+  finally{ $('#t-aud').value = ''; }
+}
+
+async function sendTutor(text){
+  text = S(text);
+  const img = state.tImg;
+  if((!text && !img) || state.tutorBusy) return;
+  if(!state.sample){ notify('El tutor necesita la IA: revisa tu clave en el archivo .env.'); return; }
+  if(coolBlock()) return;
+  if(!text) text = 'Mira la imagen adjunta y ayúdame con este ejercicio.';
+  stopSpeak(); setTutorBusy(true);
+  addTBubble('user', text, img); $('#tutor-input').value = ''; if(img) state.tImgSent = img; $('#t-attach').hidden = true; state.tImg = null; $('#t-img').value = '';
+  const bub = addTBubble('ai', ''); bub.append(h('span', {class:'typing'}, h('i'), h('i'), h('i')));
+  state.tutorChat.push({role:'user', content:text});
+  const ctx = tutorContext();
+  const sys = TUTOR_SYS + (ctx ? '\n\nPROBLEMA DE LA SESIÓN (JSON). Conoces la solución de referencia, pero NO la reveles de golpe: úsala solo para validar los cálculos y el razonamiento del estudiante.\n' + ctx : '');
+  let raf = 0, pend = '';
+  const paint = (t, fin) => { const f = renderRich(bub, t, fin); if(f.length) projectFormula(f[f.length - 1]); tScroll(); };
+  try{
+    const res = await state.sample(state.tutorChat.slice(-8), {
+      kind:'tutor', system:sys, modelTier:'default', images: img ? [img.blob] : undefined,
+      onText: ({text:t}) => { pend = t; if(!raf) raf = requestAnimationFrame(() => { raf = 0; paint(pend, false); }); }
+    });
+    if(raf) cancelAnimationFrame(raf);
+    paint(res.text, true);
+    state.tutorChat.push({role:'assistant', content:res.text});
+    speak(res.text);
+  }catch(e){
+    if(raf) cancelAnimationFrame(raf);
+    if(e && e.code === 'rate_limited') cooldown(e.retry_after);
+    const msg = errCopy(e);
+    if(e && e.text){
+      paint(e.text, true); state.tutorChat.push({role:'assistant', content:e.text});
+      if(msg) bub.append(h('p', {class:'note'}, '(' + msg + ')'));
+    } else {
+      state.tutorChat.pop(); bub.textContent = msg || 'No pude responder esta vez.'; $('#tutor-input').value = text;
+    }
+  }finally{
+    setTutorBusy(false); tScroll(true);
+  }
+}
+
+
+let outTabs;
+function init(){
+  setupTabs($('#tabs-in'), mode => {
+    state.mode = mode; $('#nota-wrap').hidden = mode === 'texto'; showError('');
+  });
+  outTabs = setupTabs($('#tabs-out'), name => {
+    if(name === 'sim'){
+      requestAnimationFrame(() => {
+        simResize();
+        if(Sim.p && !state.simShown){ state.simShown = true; if(!reduced()) { Sim.prog = 0; setSimPlaying(true); } else { Sim.prog = 1; simSync(); } }
+      });
+    } else setSimPlaying(false);
+  });
+
+  const ej = $('#ejemplos');
+  EJEMPLOS_ENT.forEach(e => ej.append(h('button', {type:'button', class:'chip', onclick: () => { $('#enunciado').value = e.t; }}, e.n)));
+  $('#enunciado').value = ENUNCIADO_EJ;
+
+  wireDrop($('#drop-img'), setImage); wireDrop($('#drop-pdf'), setPdf);
+  window.addEventListener('dragover', e => e.preventDefault()); window.addEventListener('drop', e => e.preventDefault());
+  $('#img-file').addEventListener('change', e => setImage(e.target.files[0]));
+  $('#cam-file').addEventListener('change', e => setImage(e.target.files[0]));
+  $('#quitar-img').addEventListener('click', clearImage);
+  $('#pdf-file').addEventListener('change', e => setPdf(e.target.files[0]));
+  $('#quitar-pdf').addEventListener('click', clearPdf);
+  wireDrop($('#drop-audio'), transcribirAudio);
+  $('#audio-file').addEventListener('change', e => transcribirAudio(e.target.files[0]));
+
+  $('#btn-resolver').addEventListener('click', resolver);
+  $('#btn-stop').addEventListener('click', () => { if(state.ctl) state.ctl.abort(); });
+  $('#btn-pdf').addEventListener('click', descargarPdf);
+
+  /* simulación */
+  $('#sim-play').addEventListener('click', () => setSimPlaying(!Sim.playing));
+  $('#sim-prog').addEventListener('input', e => { setSimPlaying(false); Sim.prog = e.target.value / 1000; simSync(); });
+  $('#sim-vel').addEventListener('change', e => { Sim.speed = parseFloat(e.target.value) || 1; });
+  if('ResizeObserver' in window) new ResizeObserver(simResize).observe($('#sim-wrap')); else window.addEventListener('resize', simResize);
+  const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+  if(mq && mq.addEventListener) mq.addEventListener('change', simDraw);
+  new MutationObserver(simDraw).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
+  /* código */
+  const ta = $('#code-ta'), pre = $('#code-hl');
+  ta.addEventListener('input', syncCode);
+  ta.addEventListener('scroll', () => { pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; });
+  $('#code-copy').addEventListener('click', async () => {
+    try{ await navigator.clipboard.writeText(ta.value); notify('Código copiado al portapapeles.'); }
+    catch(e){ ta.focus(); ta.select(); notify('Selecciona el código y cópialo con Ctrl+C (o Cmd+C).'); }
+  });
+  $('#code-save').addEventListener('click', () => saveFile('fisia_simulacion.py.txt', ta.value));
+  $('#code-reset').addEventListener('click', () => { ta.value = state.pythonOrig; syncCode(); notify('Código original restaurado.'); });
+
+  /* chat */
+  $('#chat-form').addEventListener('submit', e => { e.preventDefault(); sendChat($('#chat-input').value); });
+
+  /* portada del PDF: se recuerda en este navegador */
+  try{ $('#alumno').value = localStorage.getItem('fisia.alumno') || ''; $('#curso').value = localStorage.getItem('fisia.curso') || ''; }catch(e){}
+  ['alumno','curso'].forEach(id => $('#' + id).addEventListener('change', () => { try{ localStorage.setItem('fisia.' + id, $('#' + id).value); }catch(e){} }));
+
+  /* lector de PDF: el worker se carga como script, sin Web Worker */
+  if(window.pdfjsLib){
+    try{
+      if(!window.pdfjsWorker && window['pdfjs-dist/build/pdf.worker']) window.pdfjsWorker = window['pdfjs-dist/build/pdf.worker'];
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }catch(e){}
+  }
+
+  state.result = normalize(EJEMPLO); state.python = PY_EJ; state.pythonOrig = PY_EJ; state.isExample = true;
+  renderAll();
+  initCaps();
+
+  /* navegación, portada y tutor */
+  $('#view-intro').addEventListener('click', enterApp);
+  document.addEventListener('keydown', e => { if((e.key === 'Enter' || e.key === ' ') && document.body.dataset.view === 'intro'){ e.preventDefault(); enterApp(); } });
+  window.addEventListener('hashchange', route);
+  history.replaceState(null, '', location.pathname + '#/');
+  $('#tutor-form').addEventListener('submit', e => { e.preventDefault(); sendTutor($('#tutor-input').value); });
+  $('#t-img').addEventListener('change', e => setTImg(e.target.files[0]));
+  $('#t-aud').addEventListener('change', e => tutorAudio(e.target.files[0]));
+  $('#t-voz').addEventListener('click', e => {
+    if(!('speechSynthesis' in window)){ notify('Tu navegador no tiene voz integrada.'); return; }
+    state.voz = !state.voz; e.currentTarget.setAttribute('aria-pressed', state.voz); if(!state.voz) stopSpeak(); notify(state.voz ? 'El tutor leerá sus respuestas en voz alta.' : 'Voz desactivada.');
+  });
+  $('#tutor-ctx-x').addEventListener('click', () => { state.ctxOn = false; refreshTutorCtx(); });
+  route();
+}
+init();
+})();
+</script>
+</body>
+</html>
